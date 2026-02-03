@@ -15,9 +15,9 @@ export const handleGitRequest = async (req: Request, res: Response) => {
     if (authHeader) {
         const [scheme, credentials] = authHeader.split(' ');
         if (scheme === 'Basic' && credentials) {
-            const [username, password] = Buffer.from(credentials, 'base64').toString().split(':');
+            const [email, password] = Buffer.from(credentials, 'base64').toString().split(':');
             try {
-                const dbUser = await User.findOne({ username });
+                const dbUser = await User.findOne({ email });
                 if (dbUser && await bcrypt.compare(password, dbUser.passwordHash)) {
                     user = dbUser;
                 }
@@ -47,7 +47,7 @@ export const handleGitRequest = async (req: Request, res: Response) => {
         ...process.env,
         'GIT_PROJECT_ROOT': GIT_PROJECT_ROOT,
         'GIT_HTTP_EXPORT_ALL': '1',
-        'REMOTE_USER': user.username,
+        'REMOTE_USER': user.email,
         'CONTENT_TYPE': req.headers['content-type'] || '',
         'QUERY_STRING': req.originalUrl.split('?')[1] || '',
         'REQUEST_METHOD': req.method,
@@ -59,7 +59,7 @@ export const handleGitRequest = async (req: Request, res: Response) => {
         Object.assign(env, { 'CONTENT_LENGTH': req.headers['content-length'] });
     }
 
-    console.log(`[Git] Spawning ${GIT_HTTP_BACKEND} for ${pathInfo} (User: ${user.username})`);
+    console.log(`[Git] Spawning ${GIT_HTTP_BACKEND} for ${pathInfo} (User: ${user.email})`);
 
     const git = spawn(GIT_HTTP_BACKEND, [], { env: env as any });
 

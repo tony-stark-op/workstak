@@ -1,14 +1,16 @@
+import dotenv from 'dotenv';
+
+// ⚠️ CRITICAL: Load .env BEFORE other imports that use process.env
+dotenv.config();
+
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import connectDB from './config/db';
 import repoRoutes from './routes/repoRoutes';
 import gitRoutes from './routes/gitRoutes';
 import authRoutes from './routes/authRoutes';
 import taskRoutes from './routes/taskRoutes';
 import pullRequestRoutes from './routes/pullRequestRoutes';
-
-dotenv.config();
 
 // Connect to Database
 connectDB();

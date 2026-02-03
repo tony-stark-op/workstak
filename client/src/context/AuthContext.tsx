@@ -13,7 +13,7 @@ interface User {
 interface AuthContextType {
     user: User | null;
     token: string | null;
-    login: (email: string, password: string) => Promise<any>;
+    login: (token: string, user: User) => void;
     logout: () => void;
     isLoading: boolean;
 }
@@ -21,7 +21,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType>({
     user: null,
     token: null,
-    login: async () => { },
+    login: () => { },
     logout: () => { },
     isLoading: true,
 });
@@ -44,27 +44,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setIsLoading(false);
     }, []);
 
-    const login = async (email: string, password: string): Promise<any> => {
-        try {
-            const data = await loginUser({ email, password });
-
-            // If password change required, return data without setting token
-            if (data.requirePasswordChange) {
-                return data;
-            }
-
-            // Normal login
-            if (data.token) {
-                localStorage.setItem('token', data.token);
-                localStorage.setItem('user', JSON.stringify(data.user));
-                setToken(data.token);
-                setUser(data.user);
-                router.push('/dashboard');
-            }
-            return data;
-        } catch (error) {
-            throw error;
-        }
+    const login = (newToken: string, newUser: User) => {
+        localStorage.setItem('token', newToken);
+        localStorage.setItem('user', JSON.stringify(newUser));
+        setToken(newToken);
+        setUser(newUser);
+        router.push('/dashboard');
     };
 
     const logout = () => {
