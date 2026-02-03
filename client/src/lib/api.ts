@@ -21,6 +21,7 @@ api.interceptors.request.use(
 // Auth API
 export const loginUser = (data: any) => api.post('/auth/login', data).then(res => res.data);
 export const registerUser = (data: any) => api.post('/auth/register', data).then(res => res.data);
+export const changePassword = (data: any) => api.post('/auth/change-password', data).then(res => res.data);
 
 export const getRepos = () => api.get('/repos').then(res => res.data);
 export const createRepo = (data: any) => api.post('/repos', data).then(res => res.data);
