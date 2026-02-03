@@ -17,6 +17,8 @@ export const register = async (req: Request, res: Response) => {
 
         // Generate random password
         const password = Math.random().toString(36).slice(-8);
+        // const password = 'TempPass123!';
+        // console.log(`[DEBUG CREDENTIALS] User: ${username} | Pass: ${password}`); // Restore log for debugging
 
         // Send Email (Async, don't await strictly to speed up response, or await if critical)
         await emailService.sendCredentials(email, username, password);
