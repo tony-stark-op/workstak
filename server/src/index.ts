@@ -6,6 +6,7 @@ import repoRoutes from './routes/repoRoutes';
 import gitRoutes from './routes/gitRoutes';
 import authRoutes from './routes/authRoutes';
 import taskRoutes from './routes/taskRoutes';
+import pullRequestRoutes from './routes/pullRequestRoutes';
 
 dotenv.config();
 
@@ -21,6 +22,7 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/repos', repoRoutes);
 app.use('/api/tasks', taskRoutes);
+app.use('/api/repos/:repoName/prs', pullRequestRoutes);
 app.use('/git', gitRoutes); // Mount git routes at /git
 
 app.get('/', (req, res) => {

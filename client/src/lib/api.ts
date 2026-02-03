@@ -34,4 +34,10 @@ export const getTasks = (project?: string) => api.get('/tasks', { params: { proj
 export const createTask = (data: any) => api.post('/tasks', data).then(res => res.data);
 export const updateTask = (id: string, data: any) => api.patch(`/tasks/${id}`, data).then(res => res.data);
 
+// PR API
+export const getPRs = (repoName: string, status = 'active') => api.get(`/repos/${repoName}/prs`, { params: { status } }).then(res => res.data);
+export const createPR = (repoName: string, data: any) => api.post(`/repos/${repoName}/prs`, data).then(res => res.data);
+export const getPRDetails = (repoName: string, id: string) => api.get(`/repos/${repoName}/prs/${id}`).then(res => res.data);
+export const getPRDiff = (repoName: string, id: string) => api.get(`/repos/${repoName}/prs/${id}/diff`).then(res => res.data);
+
 export default api;

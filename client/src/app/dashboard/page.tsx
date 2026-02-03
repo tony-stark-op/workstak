@@ -1,218 +1,229 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getRepos, createRepo } from '@/lib/api';
-import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
+import { useAuth } from '@/context/AuthContext';
+import { motion } from 'framer-motion';
 import {
     GitBranch,
-    Clock,
-    TrendingUp,
     GitPullRequest,
+    Activity,
+    Clock,
+    Plus,
+    FolderGit2,
     Zap,
-    FileCode,
-    ArrowRight,
-    Plus
+    Layout,
+    User
 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import NewRepoModal from '@/components/NewRepoModal';
+import { getRepos, getTasks, getPRs } from '@/lib/api';
 
-export default function Dashboard() {
-    const { user, isLoading } = useAuth();
+export default function DashboardPage() {
+    const { user, logout } = useAuth();
     const router = useRouter();
     const [repos, setRepos] = useState<any[]>([]);
-    const [showModal, setShowModal] = useState(false);
-    const [newRepoName, setNewRepoName] = useState('');
-    const [description, setDescription] = useState('');
+    const [isModalOpen, setIsModalOpen] = useState(false);
+
+    // Real Data States
+    const [velocity, setVelocity] = useState(0);
+    const [activePRs, setActivePRs] = useState<any[]>([]);
 
     useEffect(() => {
-        if (!isLoading && !user) {
-            router.push('/login');
-        }
-        if (user) {
-            loadRepos();
-        }
-    }, [user, isLoading, router]);
+        loadDashboardData();
+    }, []);
 
-    const loadRepos = async () => {
+    const loadDashboardData = async () => {
         try {
-            const data = await getRepos();
-            setRepos(data);
+            // 1. Repos
+            const repoData = await getRepos();
+            setRepos(repoData);
+
+            // 2. Velocity (Count of 'done' tasks)
+            const tasks = await getTasks();
+            const doneCount = tasks.filter((t: any) => t.status === 'done').length;
+            setVelocity(doneCount);
+
+            // 3. Active PRs (Fetch from first repo for demo, or aggregate?)
+            // For now, let's just pick the first repo if exists to show *something*
+            if (repoData.length > 0) {
+                const prData = await getPRs(repoData[0].name); // Just fetches from first repo
+                setActivePRs(prData);
+            }
+
         } catch (err) {
             console.error(err);
         }
     };
 
-    const handleCreate = async (e: React.FormEvent) => {
-        e.preventDefault();
-        try {
-            await createRepo({ name: newRepoName, description });
-            setShowModal(false);
-            setNewRepoName('');
-            setDescription('');
-            loadRepos();
-        } catch (err) {
-            alert('Failed to create repo');
-        }
+    const handleCreateRepo = async () => {
+        await loadDashboardData();
     };
 
     return (
-        <div className="flex flex-col gap-6">
-            {/* Top Row: System Pulse */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="glass-card p-6 flex flex-col justify-between">
-                    <div className="flex justify-between items-start">
-                        <div>
-                            <h3 className="text-gray-500 font-medium text-sm">Sprint Velocity</h3>
-                            <div className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-teal-600 to-blue-600 mt-2">124 pts</div>
-                        </div>
-                        <div className="p-2 bg-teal-100/50 rounded-lg text-teal-700">
-                            <Zap size={20} />
-                        </div>
-                    </div>
-                    <div className="w-full bg-gray-200/50 rounded-full h-1.5 mt-4">
-                        <div className="bg-gradient-to-r from-teal-400 to-blue-500 h-1.5 rounded-full" style={{ width: '75%' }}></div>
-                    </div>
-                    <div className="text-xs text-gray-500 mt-2">75% of sprint goal completed</div>
-                </motion.div>
-
-                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="glass-card p-6 flex flex-col justify-between">
-                    <div className="flex justify-between items-start">
-                        <div>
-                            <h3 className="text-gray-500 font-medium text-sm">Active Pull Requests</h3>
-                            <div className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-600 mt-2">4</div>
-                        </div>
-                        <div className="p-2 bg-purple-100/50 rounded-lg text-purple-700">
-                            <GitPullRequest size={20} />
-                        </div>
-                    </div>
-                    <div className="flex flex-col gap-2 mt-4">
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" className="w-5 h-5 rounded-full border border-white" />
-                            <span className="truncate">Fix login race condition</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Aneka" className="w-5 h-5 rounded-full border border-white" />
-                            <span className="truncate">Update dependencies</span>
-                        </div>
-                    </div>
-                </motion.div>
-
-                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="glass-card p-6 flex flex-col justify-between">
-                    <div className="flex justify-between items-start">
-                        <div>
-                            <h3 className="text-gray-500 font-medium text-sm">Quick Actions</h3>
-                        </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3 mt-2">
-                        <button onClick={() => setShowModal(true)} className="glass-button flex flex-col items-center justify-center py-4 gap-2 hover:bg-teal-50/50 border-teal-100/50 text-teal-800">
-                            <Plus size={20} />
-                            <span className="text-xs font-semibold">New Repo</span>
-                        </button>
-                        <button className="glass-button flex flex-col items-center justify-center py-4 gap-2 text-gray-700">
-                            <FileCode size={20} />
-                            <span className="text-xs font-semibold">New Snippet</span>
-                        </button>
-                    </div>
-                </motion.div>
-            </div>
-
-            {/* Repositories */}
-            <div className="mt-4">
-                <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-2xl font-bold text-gray-800">Your Projects</h2>
-                    <button className="text-teal-600 text-sm font-medium hover:underline flex items-center gap-1">
-                        View all <ArrowRight size={14} />
+        <div className="p-8">
+            {/* Header */}
+            <div className="flex justify-between items-center mb-8">
+                <div>
+                    <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-teal-600 to-blue-600">
+                        Dashboard
+                    </h1>
+                    <p className="text-gray-500 mt-1">Overview of your development activity</p>
+                </div>
+                <div className="flex gap-3">
+                    <button onClick={() => setIsModalOpen(true)} className="glass-button flex items-center gap-2 text-teal-700 font-bold">
+                        <Plus size={18} /> New Project
+                    </button>
+                    <button onClick={() => router.push('/board')} className="glass-button flex items-center gap-2 text-purple-700 font-bold">
+                        <Zap size={18} /> New Task
+                    </button>
+                    <button onClick={logout} className="glass-button text-red-500 font-bold">
+                        Log Out
                     </button>
                 </div>
+            </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {repos.map((repo, i) => (
-                        <Link href={`/repo/${repo.name}`} key={repo._id} className="block group">
-                            <motion.div
-                                initial={{ opacity: 0, scale: 0.95 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                transition={{ delay: i * 0.05 }}
-                                className="glass-card p-6 h-full flex flex-col relative overflow-hidden group-hover:border-teal-200/50 group-hover:shadow-teal-500/10"
+            {/* Stats Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                {/* Sprint Velocity */}
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="glass-card p-6 relative overflow-hidden group"
+                >
+                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                        <Zap size={64} className="text-teal-600" />
+                    </div>
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className="p-2 bg-teal-100 rounded-lg text-teal-600">
+                            <Activity size={20} />
+                        </div>
+                        <h3 className="font-bold text-gray-700">Sprint Velocity</h3>
+                    </div>
+                    <div className="mt-4">
+                        <div className="text-3xl font-bold text-gray-800">{velocity} <span className="text-sm font-normal text-gray-500">tasks</span></div>
+                        <div className="w-full bg-gray-200 h-1.5 rounded-full mt-3 overflow-hidden">
+                            <div className="bg-gradient-to-r from-teal-400 to-blue-500 h-full rounded-full w-3/4"></div>
+                        </div>
+                    </div>
+                </motion.div>
+
+                {/* Active PRs Widget */}
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 }}
+                    className="glass-card p-6 relative overflow-hidden group"
+                >
+                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                        <GitPullRequest size={64} className="text-purple-600" />
+                    </div>
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className="p-2 bg-purple-100 rounded-lg text-purple-600">
+                            <GitPullRequest size={20} />
+                        </div>
+                        <h3 className="font-bold text-gray-700">Active PRs</h3>
+                    </div>
+                    <div className="mt-4 space-y-3">
+                        {activePRs.length === 0 ? (
+                            <div className="text-sm text-gray-400 italic">No active pull requests</div>
+                        ) : (
+                            activePRs.slice(0, 2).map(pr => (
+                                <div key={pr._id} className="flex items-center justify-between text-sm p-2 bg-white/40 rounded-lg cursor-pointer hover:bg-white/60 transition-colors"
+                                    onClick={() => router.push(`/repo/${pr.repository}/pull-requests/${pr._id}`)}
+                                >
+                                    <span className="font-bold text-gray-700">{pr.title}</span>
+                                    <span className="text-xs text-purple-600 bg-purple-100 px-2 py-0.5 rounded-full">#{pr._id.substring(pr._id.length - 3)}</span>
+                                </div>
+                            ))
+                        )}
+                        {activePRs.length > 2 && (
+                            <div className="text-xs text-center text-gray-500 mt-2">+{activePRs.length - 2} more</div>
+                        )}
+                    </div>
+                </motion.div>
+
+                {/* Repos Widget */}
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="glass-card p-6 relative overflow-hidden group"
+                >
+                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                        <FolderGit2 size={64} className="text-blue-600" />
+                    </div>
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
+                            <FolderGit2 size={20} />
+                        </div>
+                        <h3 className="font-bold text-gray-700">Repositories</h3>
+                    </div>
+                    <div className="mt-4">
+                        <div className="text-3xl font-bold text-gray-800">{repos.length} <span className="text-sm font-normal text-gray-500">projects</span></div>
+                        <div className="flex items-center gap-2 mt-3 text-sm text-gray-500">
+                            <Clock size={14} /> Updated just now
+                        </div>
+                    </div>
+                </motion.div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Repos List */}
+                <div className="lg:col-span-2 glass-panel">
+                    <div className="p-6 border-b border-white/50 flex justify-between items-center">
+                        <h3 className="font-bold text-lg text-gray-800">Your Projects</h3>
+                        <div className="flex gap-2">
+                            <button className="p-2 hover:bg-white/50 rounded-lg text-gray-500"><Layout size={18} /></button>
+                        </div>
+                    </div>
+                    <div className="divide-y divide-white/50">
+                        {repos.map((repo: any) => (
+                            <div
+                                key={repo.name}
+                                onClick={() => router.push(`/repo/${repo.name}`)}
+                                className="p-4 hover:bg-white/40 transition-colors flex items-center justify-between cursor-pointer group"
                             >
-                                <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-teal-400/10 to-blue-400/10 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
-
-                                <div className="flex justify-between items-start mb-4 relative z-10">
-                                    <div className="p-2.5 bg-white/80 rounded-xl shadow-sm text-teal-600">
+                                <div className="flex items-center gap-4">
+                                    <div className="p-3 bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl text-white shadow-lg group-hover:scale-105 transition-transform">
                                         <GitBranch size={20} />
                                     </div>
-                                    <span className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-lg border ${repo.isPrivate ? 'bg-amber-50 text-amber-600 border-amber-100' : 'bg-teal-50 text-teal-600 border-teal-100'}`}>
-                                        {repo.isPrivate ? 'Priv' : 'Pub'}
-                                    </span>
-                                </div>
-
-                                <h3 className="text-lg font-bold text-gray-800 mb-2 group-hover:text-teal-700 transition-colors">{repo.name}</h3>
-                                <p className="text-gray-500 text-sm mb-6 line-clamp-2">{repo.description || 'No description provided.'}</p>
-
-                                <div className="mt-auto pt-4 border-t border-gray-100/50 flex items-center justify-between text-xs text-gray-400">
-                                    <div className="flex items-center gap-1.5">
-                                        <div className="w-2 h-2 rounded-full bg-green-400"></div>
-                                        <span>master</span>
-                                    </div>
-                                    <div className="flex items-center gap-1">
-                                        <Clock size={12} />
-                                        <span>{new Date(repo.updatedAt).toLocaleDateString()}</span>
+                                    <div>
+                                        <h4 className="font-bold text-gray-700 group-hover:text-teal-700 transition-colors">{repo.name}</h4>
+                                        <p className="text-xs text-gray-500">Updated recently</p>
                                     </div>
                                 </div>
-                            </motion.div>
-                        </Link>
-                    ))}
+                                <div className="flex items-center gap-4 text-sm text-gray-500">
+                                    <span>main</span>
+                                    <span className="text-xs bg-gray-100 px-2 py-1 rounded">Private</span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
 
-                    {repos.length === 0 && (
-                        <div className="col-span-full py-12 text-center glass-panel">
-                            <p className="text-gray-500">No projects found. Launch your first one now!</p>
+                {/* Quick Actions / Activity */}
+                <div className="space-y-6">
+                    <div className="glass-panel p-6">
+                        <h3 className="font-bold text-lg text-gray-800 mb-4">Quick Actions</h3>
+                        <div className="space-y-3">
+                            <button className="w-full text-left p-3 hover:bg-white/60 rounded-xl flex items-center gap-3 transition-colors group">
+                                <span className="p-2 bg-purple-100 text-purple-600 rounded-lg group-hover:scale-110 transition-transform"><Plus size={16} /></span>
+                                <span className="font-medium text-gray-700">New Snippet</span>
+                            </button>
+                            <button className="w-full text-left p-3 hover:bg-white/60 rounded-xl flex items-center gap-3 transition-colors group">
+                                <span className="p-2 bg-blue-100 text-blue-600 rounded-lg group-hover:scale-110 transition-transform"><User size={16} /></span>
+                                <span className="font-medium text-gray-700">Invite Team</span>
+                            </button>
                         </div>
-                    )}
+                    </div>
                 </div>
             </div>
 
-            {/* Create Modal - Glass Style */}
-            {showModal && (
-                <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className="glass-panel p-8 max-w-md w-full"
-                    >
-                        <h2 className="text-2xl font-bold mb-1 from-teal-600 to-blue-600 bg-clip-text text-transparent bg-gradient-to-r">Initialize Project</h2>
-                        <p className="text-gray-500 text-sm mb-6">Create a new Git repository for your next big idea.</p>
-
-                        <form onSubmit={handleCreate}>
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-600 uppercase tracking-wide mb-1.5 ml-1">Project Name</label>
-                                    <input
-                                        type="text"
-                                        required
-                                        value={newRepoName}
-                                        onChange={e => setNewRepoName(e.target.value)}
-                                        className="glass-input w-full"
-                                        placeholder="e.g. quantum-engine"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-600 uppercase tracking-wide mb-1.5 ml-1">Description</label>
-                                    <textarea
-                                        value={description}
-                                        onChange={e => setDescription(e.target.value)}
-                                        className="glass-input w-full h-24 resize-none"
-                                        placeholder="What are you building?"
-                                    />
-                                </div>
-                            </div>
-                            <div className="flex justify-end gap-3 mt-8">
-                                <button type="button" onClick={() => setShowModal(false)} className="px-5 py-2.5 text-gray-600 font-medium hover:bg-gray-100/50 rounded-xl transition-colors">Cancel</button>
-                                <button type="submit" className="px-5 py-2.5 bg-gradient-to-r from-teal-500 to-blue-600 text-white font-medium rounded-xl shadow-lg shadow-teal-500/30 hover:shadow-teal-500/40 hover:scale-[1.02] transition-all">Create Project</button>
-                            </div>
-                        </form>
-                    </motion.div>
-                </div>
-            )}
+            <NewRepoModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                onRepoCreated={handleCreateRepo}
+            />
         </div>
     );
 }

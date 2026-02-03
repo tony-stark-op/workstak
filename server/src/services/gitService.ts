@@ -91,4 +91,20 @@ export class GitService {
             return [];
         }
     }
+
+    async getDiff(repoName: string, source: string, target: string): Promise<string> {
+        const repoPath = this.getRepoPath(repoName);
+        try {
+            // git diff target...source (3-dot diff: what is in source that is not in target)
+            const { stdout } = await execAsync(`git diff ${target}...${source}`, { cwd: repoPath });
+            return stdout;
+        } catch (error) {
+            console.error('Diff error:', error);
+            return '';
+        }
+    }
+
+    async mergeBranches(repoName: string, source: string, target: string): Promise<void> {
+        console.log(`[Mock] Merging ${source} into ${target} for ${repoName}`);
+    }
 }
