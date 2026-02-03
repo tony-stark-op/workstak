@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { getPRDetails, getPRDiff } from '@/lib/api';
-import { GitPullRequest, CheckCircle, XCircle, ArrowLeft, Clock } from 'lucide-react';
+import { getPRDetails, getPRDiff, mergePR } from '@/lib/api';
+import { GitPullRequest, CheckCircle, XCircle, ArrowLeft, Clock, GitMerge } from 'lucide-react';
 import Link from 'next/link';
 
 export default function PullRequestDetailsPage() {
@@ -11,6 +11,7 @@ export default function PullRequestDetailsPage() {
     const [pr, setPr] = useState<any>(null);
     const [diff, setDiff] = useState('');
     const [activeTab, setActiveTab] = useState<'overview' | 'files'>('overview');
+    const [isMerging, setIsMerging] = useState(false);
 
     useEffect(() => {
         loadData();
@@ -24,6 +25,22 @@ export default function PullRequestDetailsPage() {
             setDiff(diffData.diff);
         } catch (err) {
             console.error(err);
+        }
+    };
+
+    const handleMerge = async () => {
+        if (!confirm('Are you sure you want to merge this pull request?')) return;
+
+        setIsMerging(true);
+        try {
+            await mergePR(name as string, id as string);
+            // Reload PR details to show updated status
+            await loadData();
+        } catch (err) {
+            console.error('Merge failed:', err);
+            alert('Failed to merge PR');
+        } finally {
+            setIsMerging(false);
         }
     };
 
@@ -42,18 +59,30 @@ export default function PullRequestDetailsPage() {
                             {pr.title} <span className="text-gray-400 font-normal">#{id.toString().substring(18)}</span>
                         </h1>
                         <div className="flex items-center gap-3 mt-2">
-                            <span className={`px-3 py-1 rounded-full text-sm font-bold flex items-center gap-2 ${pr.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-purple-100 text-purple-700'
+                            <span className={`px-3 py-1 rounded-full text-sm font-bold flex items-center gap-2 ${pr.status === 'active' ? 'bg-green-100 text-green-700' :
+                                    pr.status === 'merged' ? 'bg-blue-100 text-blue-700' :
+                                        'bg-gray-100 text-gray-500'
                                 }`}>
                                 <GitPullRequest size={16} /> {pr.status.toUpperCase()}
                             </span>
                             <span className="text-gray-500 text-sm flex items-center gap-1">
-                                <span className="font-bold text-gray-700">{pr.createdBy?.username}</span> want to merge
+                                <span className="font-bold text-gray-700">{pr.createdBy?.firstName} {pr.createdBy?.lastName}</span> wants to merge
                                 <span className="bg-gray-200 px-1.5 py-0.5 rounded text-gray-700 font-mono text-xs mx-1">{pr.sourceBranch}</span>
                                 into
                                 <span className="bg-gray-200 px-1.5 py-0.5 rounded text-gray-700 font-mono text-xs mx-1">{pr.targetBranch}</span>
                             </span>
                         </div>
                     </div>
+                    {pr.status === 'active' && (
+                        <button
+                            onClick={handleMerge}
+                            disabled={isMerging}
+                            className="glass-button bg-teal-600/10 text-teal-700 hover:bg-teal-600 hover:text-white border-teal-200 flex items-center gap-2 disabled:opacity-50"
+                        >
+                            <GitMerge size={16} />
+                            {isMerging ? 'Merging...' : 'Merge Pull Request'}
+                        </button>
+                    )}
                 </div>
             </div>
 

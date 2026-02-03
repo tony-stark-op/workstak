@@ -77,8 +77,8 @@ export default function PullRequestsPage() {
                                         </div>
                                         <div className="w-32">
                                             <span className={`px-2 py-1 rounded-full text-xs font-bold ${pr.status === 'active' ? 'bg-green-100 text-green-700' :
-                                                    pr.status === 'completed' ? 'bg-purple-100 text-purple-700' :
-                                                        'bg-gray-100 text-gray-500'
+                                                pr.status === 'merged' ? 'bg-blue-100 text-blue-700' :
+                                                    'bg-gray-100 text-gray-500'
                                                 }`}>
                                                 {pr.status.toUpperCase()}
                                             </span>

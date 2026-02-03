@@ -4,7 +4,8 @@ import {
     createPR,
     getPRs,
     getPRDetails,
-    getPRDiff
+    getPRDiff,
+    mergePR
 } from '../controllers/pullRequestController';
 
 const router = Router({ mergeParams: true });
@@ -14,5 +15,6 @@ router.post('/', authenticate, createPR);
 router.get('/', authenticate, getPRs);
 router.get('/:id', authenticate, getPRDetails);
 router.get('/:id/diff', authenticate, getPRDiff);
+router.post('/:id/merge', authenticate, mergePR);
 
 export default router;

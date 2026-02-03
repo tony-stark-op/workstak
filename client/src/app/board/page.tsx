@@ -20,6 +20,7 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { getTasks, createTask, updateTask } from '@/lib/api';
 import { Plus, MoreHorizontal } from 'lucide-react';
+import NewTaskModal from '@/components/NewTaskModal';
 
 const COLUMNS = [
     { id: 'todo', title: 'To Do', color: 'bg-red-500' },
@@ -70,6 +71,7 @@ function TaskCard({ task }: { task: any }) {
 export default function BoardPage() {
     const [tasks, setTasks] = useState<any[]>([]);
     const [activeId, setActiveId] = useState(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
     const sensors = useSensors(
         useSensor(PointerSensor),
@@ -129,14 +131,20 @@ export default function BoardPage() {
         }
     };
 
-    const handleCreateMock = async () => {
-        await createTask({
-            title: 'Implement new feature',
-            project: 'workstack',
-            status: 'todo',
-            priority: 'high'
-        });
-        loadTasks();
+    const handleTaskSubmit = async (taskData: any) => {
+        try {
+            // Call API to create task
+            const newTask = await createTask(taskData);
+
+            // Optimistically add to "To Do" column state
+            setTasks(prev => [...prev, newTask]);
+
+            // Close modal
+            setIsModalOpen(false);
+        } catch (err) {
+            console.error('Failed to create task:', err);
+            // Optionally show error to user
+        }
     };
 
     return (
@@ -146,7 +154,7 @@ export default function BoardPage() {
                     <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-teal-600 to-blue-600">Central Board</h1>
                     <p className="text-sm text-gray-500">Manage tasks across all projects</p>
                 </div>
-                <button onClick={handleCreateMock} className="glass-button flex items-center gap-2 text-teal-700">
+                <button onClick={() => setIsModalOpen(true)} className="glass-button flex items-center gap-2 text-teal-700">
                     <Plus size={18} /> New Task
                 </button>
             </div>
@@ -191,6 +199,12 @@ export default function BoardPage() {
                     {activeId ? <TaskCard task={tasks.find(t => t._id === activeId)} /> : null}
                 </DragOverlay>
             </DndContext>
+
+            <NewTaskModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                onSubmit={handleTaskSubmit}
+            />
         </div>
     );
 }

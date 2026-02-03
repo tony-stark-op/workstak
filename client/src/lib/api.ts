@@ -40,5 +40,6 @@ export const getPRs = (repoName: string, status = 'active') => api.get(`/repos/$
 export const createPR = (repoName: string, data: any) => api.post(`/repos/${repoName}/prs`, data).then(res => res.data);
 export const getPRDetails = (repoName: string, id: string) => api.get(`/repos/${repoName}/prs/${id}`).then(res => res.data);
 export const getPRDiff = (repoName: string, id: string) => api.get(`/repos/${repoName}/prs/${id}/diff`).then(res => res.data);
+export const mergePR = (repoName: string, id: string) => api.post(`/repos/${repoName}/prs/${id}/merge`).then(res => res.data);
 
 export default api;

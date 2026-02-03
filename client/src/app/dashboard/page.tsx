@@ -23,6 +23,7 @@ export default function DashboardPage() {
     const router = useRouter();
     const [repos, setRepos] = useState<any[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
 
     // Real Data States
     const [velocity, setVelocity] = useState(0);
@@ -33,25 +34,44 @@ export default function DashboardPage() {
     }, []);
 
     const loadDashboardData = async () => {
+        setIsLoading(true);
         try {
             // 1. Repos
             const repoData = await getRepos();
             setRepos(repoData);
 
-            // 2. Velocity (Count of 'done' tasks)
+            // 2. Velocity (Count of 'done' tasks - could be filtered by user if needed)
             const tasks = await getTasks();
             const doneCount = tasks.filter((t: any) => t.status === 'done').length;
             setVelocity(doneCount);
 
-            // 3. Active PRs (Fetch from first repo for demo, or aggregate?)
-            // For now, let's just pick the first repo if exists to show *something*
-            if (repoData.length > 0) {
-                const prData = await getPRs(repoData[0].name); // Just fetches from first repo
-                setActivePRs(prData);
+            // 3. Active PRs - Aggregate from ALL repositories
+            const allPRs: any[] = [];
+            for (const repo of repoData) {
+                try {
+                    const prData = await getPRs(repo.name, 'active');
+                    // Add repository name to each PR for display
+                    const prsWithRepo = prData.map((pr: any) => ({ ...pr, repositoryName: repo.name }));
+                    allPRs.push(...prsWithRepo);
+                } catch (err) {
+                    console.warn(`Failed to fetch PRs for ${repo.name}:`, err);
+                }
             }
 
+            // Filter PRs where user is author or reviewer (if user ID is available)
+            // Note: reviewers field may not be populated yet, so we check for existence
+            const userPRs = user?.id ? allPRs.filter((pr: any) =>
+                pr.createdBy?._id === user.id ||
+                pr.createdBy === user.id ||
+                pr.reviewers?.some((r: any) => r._id === user.id || r === user.id)
+            ) : allPRs;
+
+            setActivePRs(userPRs);
+
         } catch (err) {
-            console.error(err);
+            console.error('Failed to load dashboard data:', err);
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -124,14 +144,19 @@ export default function DashboardPage() {
                         <h3 className="font-bold text-gray-700">Active PRs</h3>
                     </div>
                     <div className="mt-4 space-y-3">
-                        {activePRs.length === 0 ? (
+                        {isLoading ? (
+                            <div className="text-sm text-gray-400 italic">Loading...</div>
+                        ) : activePRs.length === 0 ? (
                             <div className="text-sm text-gray-400 italic">No active pull requests</div>
                         ) : (
                             activePRs.slice(0, 2).map(pr => (
                                 <div key={pr._id} className="flex items-center justify-between text-sm p-2 bg-white/40 rounded-lg cursor-pointer hover:bg-white/60 transition-colors"
-                                    onClick={() => router.push(`/repo/${pr.repository}/pull-requests/${pr._id}`)}
+                                    onClick={() => router.push(`/repo/${pr.repositoryName || pr.repository}/pull-requests/${pr._id}`)}
                                 >
-                                    <span className="font-bold text-gray-700">{pr.title}</span>
+                                    <div className="flex-1">
+                                        <div className="font-bold text-gray-700">{pr.title}</div>
+                                        <div className="text-xs text-gray-500">{pr.repositoryName || pr.repository}</div>
+                                    </div>
                                     <span className="text-xs text-purple-600 bg-purple-100 px-2 py-0.5 rounded-full">#{pr._id.substring(pr._id.length - 3)}</span>
                                 </div>
                             ))

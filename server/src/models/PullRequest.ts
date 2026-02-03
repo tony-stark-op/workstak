@@ -6,8 +6,15 @@ export interface IPullRequest extends Document {
     sourceBranch: string;
     targetBranch: string;
     repository: string;
-    status: 'active' | 'completed' | 'abandoned';
+    status: 'active' | 'merged' | 'abandoned';
     createdBy: mongoose.Types.ObjectId;
+    author: mongoose.Types.ObjectId; // Alias for createdBy
+    reviewers: mongoose.Types.ObjectId[];
+    comments: Array<{
+        user: mongoose.Types.ObjectId;
+        text: string;
+        date: Date;
+    }>;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -20,10 +27,25 @@ const pullRequestSchema = new Schema({
     repository: { type: String, required: true },
     status: {
         type: String,
-        enum: ['active', 'completed', 'abandoned'],
+        enum: ['active', 'merged', 'abandoned'],
         default: 'active'
     },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    reviewers: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+    comments: [{
+        user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+        text: { type: String, required: true },
+        date: { type: Date, default: Date.now }
+    }]
 }, { timestamps: true });
+
+// Virtual field for author (alias of createdBy)
+pullRequestSchema.virtual('author').get(function () {
+    return this.createdBy;
+});
+
+// Ensure virtuals are included in JSON
+pullRequestSchema.set('toJSON', { virtuals: true });
+pullRequestSchema.set('toObject', { virtuals: true });
 
 export default mongoose.model<IPullRequest>('PullRequest', pullRequestSchema);
