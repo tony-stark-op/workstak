@@ -1,18 +1,30 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
+@theme {
+  /* This links the Next.js font variable (--font-poppins) to Tailwind's font-sans utility */
+  --font-sans: var(--font-poppins), ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+}
+
+/* In v4, CSS variables defined in :root are automatically available, 
+  but defining them here keeps your colors consistent.
+*/
 :root {
   --background: #ffffff;
   --foreground: #171717;
 }
 
+/* @layer base/components/utilities still work in v4, 
+  but they hook into the @import "tailwindcss" above.
+*/
 @layer base {
   body {
+    /* Your custom gradient background */
     background: linear-gradient(135deg, #E0F7FA 0%, #80DEEA 50%, #E1BEE7 100%);
     background-attachment: fixed;
     color: var(--foreground);
     min-height: 100vh;
+    font-family: var(--font-sans);
+    /* Explicitly set the font family */
   }
 }
 
@@ -50,6 +62,8 @@
     transition: all 0.2s ease;
     color: #1f2937;
     box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    cursor: pointer;
+    /* Added for better UX */
   }
 
   .glass-button:hover {
