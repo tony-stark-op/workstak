@@ -15,25 +15,22 @@ interface FileTreeProps {
 }
 
 const FileTree = ({ items, onSelect, selectedSha }: FileTreeProps) => {
-    // Simple flat list for now, ideally recursive for folders
-    // Mapped to Glass Style
-
     return (
         <div className="flex flex-col gap-1">
-            <div className="text-xs font-bold text-gray-400 uppercase tracking-widest px-4 mb-2">Explorer</div>
+            <div className="text-xs font-bold text-gray-400 uppercase tracking-widest px-4 mb-2 mt-2">Explorer</div>
             {items.map((item) => {
                 const isSelected = selectedSha === item.sha;
                 const icon = item.type === 'tree'
-                    ? <Folder size={16} className="text-teal-400 fill-teal-400/20" />
+                    ? <Folder size={16} className="text-gray-400 group-hover:text-indigo-500 transition-colors" />
                     : <FileText size={16} className="text-blue-400" />;
 
                 return (
                     <button
                         key={item.sha}
                         onClick={() => onSelect(item)}
-                        className={`flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-all text-left group ${isSelected
-                            ? 'bg-teal-50 text-teal-800 font-medium'
-                            : 'text-gray-600 hover:bg-white/40 hover:text-teal-700'}`}
+                        className={`flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-all text-left group mx-2 ${isSelected
+                            ? 'bg-indigo-50 text-indigo-700 font-bold'
+                            : 'text-gray-600 hover:bg-gray-100/80 hover:text-indigo-600'}`}
                     >
                         {icon}
                         <span className="truncate">{item.name}</span>

@@ -5,88 +5,77 @@
   --font-sans: var(--font-poppins), ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 }
 
-/* In v4, CSS variables defined in :root are automatically available, 
-  but defining them here keeps your colors consistent.
-*/
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #F5F6FA;
+  /* Light Slate Background */
+  --foreground: #2d3748;
+  /* Dark Gray Text */
+  --sidebar-bg: #4F46E5;
+  /* Indigo 600 - Deep Blurple */
+  --card-bg: #FFFFFF;
 }
 
-/* @layer base/components/utilities still work in v4, 
-  but they hook into the @import "tailwindcss" above.
-*/
 @layer base {
   body {
-    /* Your custom gradient background */
-    background: linear-gradient(135deg, #E0F7FA 0%, #80DEEA 50%, #E1BEE7 100%);
-    background-attachment: fixed;
+    background: var(--background);
     color: var(--foreground);
     min-height: 100vh;
     font-family: var(--font-sans);
-    /* Explicitly set the font family */
   }
 }
 
 @layer components {
-  .glass-panel {
-    background-color: rgba(255, 255, 255, 0.6);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
-    border: 1px solid rgba(255, 255, 255, 0.4);
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-    border-radius: 20px;
-  }
 
+  /* New Card Style */
+  .dashboard-card,
   .glass-card {
-    background-color: rgba(255, 255, 255, 0.4);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.5);
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
-    border-radius: 20px;
-    transition: all 0.3s ease;
+    background-color: var(--card-bg);
+    border-radius: 24px;
+    /* Large rounded corners */
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    /* Soft shadow */
+    border: none;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
   }
 
+  .dashboard-card:hover,
   .glass-card:hover {
-    background-color: rgba(255, 255, 255, 0.5);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
   }
 
-  .glass-button {
-    background-color: rgba(255, 255, 255, 0.5);
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
-    border: 1px solid rgba(255, 255, 255, 0.6);
-    border-radius: 12px;
-    padding: 0.5rem 1rem;
-    transition: all 0.2s ease;
-    color: #1f2937;
-    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-    cursor: pointer;
-    /* Added for better UX */
+  /* Legacy glass panel fallback - updated to be clean white */
+  .glass-panel {
+    background-color: #ffffff;
+    border-radius: 20px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
   }
 
-  .glass-button:hover {
-    background-color: rgba(255, 255, 255, 0.8);
+  .sidebar-link {
+    @apply flex items-center gap-4 px-6 py-3 text-indigo-100 hover:text-white transition-colors duration-200 relative;
   }
 
-  .glass-input {
-    background-color: rgba(255, 255, 255, 0.4);
-    border: 1px solid rgba(255, 255, 255, 0.6);
-    border-radius: 12px;
-    padding: 0.5rem 1rem;
-    outline: none;
-    transition: all 0.2s ease;
+  .sidebar-link.active {
+    @apply text-white font-semibold;
   }
 
-  .glass-input:focus {
-    box-shadow: 0 0 0 2px rgba(20, 184, 166, 0.5);
+  .sidebar-link.active::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    border-top-right-radius: 4px;
+    border-bottom-right-radius: 4px;
+    background-color: #F472B6;
+    /* Pink accent from reference */
   }
 }
 
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -95,7 +84,7 @@
 
 ::-webkit-scrollbar-thumb {
   background: rgba(0, 0, 0, 0.1);
-  border-radius: 4px;
+  border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {

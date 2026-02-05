@@ -45,6 +45,39 @@ class EmailService {
             // Don't block registration flow, but log error
         }
     }
+
+    async sendTaskDeletionNotification(task: any, deletedBy: string) {
+        try {
+            const recipients = ['support@cloudbyadi.com', 'adityalate@cloudbyadi.com'];
+
+            const info = await this.transporter.sendMail({
+                from: `"WorkStack Notifications" <${process.env.SMTP_USER}>`,
+                to: recipients.join(', '),
+                subject: `Task Deleted: ${task.title}`,
+                html: `
+                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px; border-left: 5px solid #ef4444;">
+                        <h2 style="color: #ef4444;">Task Deletion Alert</h2>
+                        <p>The following task has been deleted from WorkStack.</p>
+                        
+                        <div style="background-color: #fef2f2; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                            <p style="margin: 5px 0;"><strong>Title:</strong> ${task.title}</p>
+                            <p style="margin: 5px 0;"><strong>Description:</strong> ${task.description || 'No description'}</p>
+                            <p style="margin: 5px 0;"><strong>Project:</strong> ${task.project || 'N/A'}</p>
+                            <p style="margin: 5px 0;"><strong>Assigned To:</strong> ${task.assignee?.email || task.assignee?.username || 'Unassigned'}</p>
+                            <p style="margin: 5px 0;"><strong>Status:</strong> ${task.status}</p>
+                            <hr style="border: 0; border-top: 1px solid #fee2e2; margin: 10px 0;"/>
+                            <p style="margin: 5px 0; font-size: 0.9em; color: #666;"><strong>Deleted By:</strong> ${deletedBy}</p>
+                        </div>
+
+                        <p style="font-size: 12px; color: #6b7280;">This is an automated notification required for compliance.</p>
+                    </div>
+                `,
+            });
+            console.log("[Email Service] Deletion notification sent: %s", info.messageId);
+        } catch (error) {
+            console.error("[Email Service] Error sending deletion notification:", error);
+        }
+    }
 }
 
 export default new EmailService();

@@ -3,70 +3,63 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { motion } from 'framer-motion';
-import {
-    GitBranch,
-    GitPullRequest,
-    Activity,
-    Clock,
-    Plus,
-    FolderGit2,
-    Zap,
-    Layout,
-    User
-} from 'lucide-react';
-import NewRepoModal from '@/components/NewRepoModal';
 import { getRepos, getTasks, getPRs } from '@/lib/api';
+import { motion } from 'framer-motion';
+import { GitBranch, ChevronRight, Plus, Activity, Star } from 'lucide-react';
+import { ActiveTasksWidget, OpenPRsWidget, SystemVelocityWidget, CommitActivityWidget } from '@/components/KPIWidgets';
 
 export default function DashboardPage() {
-    const { user, logout } = useAuth();
+    const { user } = useAuth();
     const router = useRouter();
     const [repos, setRepos] = useState<any[]>([]);
-    const [isModalOpen, setIsModalOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
 
-    // Real Data States
-    const [velocity, setVelocity] = useState(0);
-    const [activePRs, setActivePRs] = useState<any[]>([]);
+    // KPI Data States
+    const [activeTaskCount, setActiveTaskCount] = useState(0);
+    const [activePRCount, setActivePRCount] = useState(0);
+    const [velocityData, setVelocityData] = useState({ done: 0, total: 0 });
 
     useEffect(() => {
         loadDashboardData();
-    }, []);
+    }, [user]);
 
     const loadDashboardData = async () => {
         setIsLoading(true);
         try {
-            // 1. Repos
+            // 1. Repos (Just top 3 for quick access)
             const repoData = await getRepos();
-            setRepos(repoData);
+            setRepos(repoData.slice(0, 3));
 
-            // 2. Velocity (Count of 'done' tasks - could be filtered by user if needed)
+            // 2. Tasks & Velocity
             const tasks = await getTasks();
-            const doneCount = tasks.filter((t: any) => t.status === 'done').length;
-            setVelocity(doneCount);
 
-            // 3. Active PRs - Aggregate from ALL repositories
-            const allPRs: any[] = [];
+            // Calculate System Velocity (Global)
+            const doneCount = tasks.filter((t: any) => t.status === 'done').length;
+            setVelocityData({
+                done: doneCount,
+                total: tasks.length
+            });
+
+            // Calculate My Active Tasks (User Specific)
+            // Filter by status 'in-progress' and assignee matching current user
+            const myActiveTasks = tasks.filter((t: any) =>
+                t.status === 'in-progress' &&
+                (t.assignee === user?.username || t.assignee?._id === user?.id)
+            );
+            setActiveTaskCount(myActiveTasks.length);
+
+
+            // 3. Active PRs - Aggregate
+            let totalActivePRs = 0;
             for (const repo of repoData) {
                 try {
                     const prData = await getPRs(repo.name, 'active');
-                    // Add repository name to each PR for display
-                    const prsWithRepo = prData.map((pr: any) => ({ ...pr, repositoryName: repo.name }));
-                    allPRs.push(...prsWithRepo);
+                    totalActivePRs += prData.length;
                 } catch (err) {
                     console.warn(`Failed to fetch PRs for ${repo.name}:`, err);
                 }
             }
-
-            // Filter PRs where user is author or reviewer (if user ID is available)
-            // Note: reviewers field may not be populated yet, so we check for existence
-            const userPRs = user?.id ? allPRs.filter((pr: any) =>
-                pr.createdBy?._id === user.id ||
-                pr.createdBy === user.id ||
-                pr.reviewers?.some((r: any) => r._id === user.id || r === user.id)
-            ) : allPRs;
-
-            setActivePRs(userPRs);
+            setActivePRCount(totalActivePRs);
 
         } catch (err) {
             console.error('Failed to load dashboard data:', err);
@@ -75,180 +68,117 @@ export default function DashboardPage() {
         }
     };
 
-    const handleCreateRepo = async () => {
-        await loadDashboardData();
-    };
-
     return (
-        <div className="p-8">
-            {/* Header */}
-            <div className="flex justify-between items-center mb-8">
-                <div>
-                    <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-teal-600 to-blue-600">
-                        Dashboard
-                    </h1>
-                    <p className="text-gray-500 mt-1">Overview of your development activity</p>
-                </div>
-                <div className="flex gap-3">
-                    <button onClick={() => setIsModalOpen(true)} className="glass-button flex items-center gap-2 text-teal-700 font-bold">
-                        <Plus size={18} /> New Project
-                    </button>
-                    <button onClick={() => router.push('/board')} className="glass-button flex items-center gap-2 text-purple-700 font-bold">
-                        <Zap size={18} /> New Task
-                    </button>
-                    <button onClick={logout} className="glass-button text-red-500 font-bold">
-                        Log Out
-                    </button>
-                </div>
+        <div className="space-y-8">
+            <div className="flex items-center justify-between">
+                <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
+                <p className="text-sm text-gray-500">Welcome back, {user?.firstName}!</p>
             </div>
 
-            {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                {/* Sprint Velocity */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="glass-card p-6 relative overflow-hidden group"
-                >
-                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                        <Zap size={64} className="text-teal-600" />
-                    </div>
-                    <div className="flex items-center gap-3 mb-2">
-                        <div className="p-2 bg-teal-100 rounded-lg text-teal-600">
-                            <Activity size={20} />
-                        </div>
-                        <h3 className="font-bold text-gray-700">Sprint Velocity</h3>
-                    </div>
-                    <div className="mt-4">
-                        <div className="text-3xl font-bold text-gray-800">{velocity} <span className="text-sm font-normal text-gray-500">tasks</span></div>
-                        <div className="w-full bg-gray-200 h-1.5 rounded-full mt-3 overflow-hidden">
-                            <div className="bg-gradient-to-r from-teal-400 to-blue-500 h-full rounded-full w-3/4"></div>
-                        </div>
-                    </div>
-                </motion.div>
-
-                {/* Active PRs Widget */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 }}
-                    className="glass-card p-6 relative overflow-hidden group"
-                >
-                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                        <GitPullRequest size={64} className="text-purple-600" />
-                    </div>
-                    <div className="flex items-center gap-3 mb-2">
-                        <div className="p-2 bg-purple-100 rounded-lg text-purple-600">
-                            <GitPullRequest size={20} />
-                        </div>
-                        <h3 className="font-bold text-gray-700">Active PRs</h3>
-                    </div>
-                    <div className="mt-4 space-y-3">
-                        {isLoading ? (
-                            <div className="text-sm text-gray-400 italic">Loading...</div>
-                        ) : activePRs.length === 0 ? (
-                            <div className="text-sm text-gray-400 italic">No active pull requests</div>
-                        ) : (
-                            activePRs.slice(0, 2).map(pr => (
-                                <div key={pr._id} className="flex items-center justify-between text-sm p-2 bg-white/40 rounded-lg cursor-pointer hover:bg-white/60 transition-colors"
-                                    onClick={() => router.push(`/repo/${pr.repositoryName || pr.repository}/pull-requests/${pr._id}`)}
-                                >
-                                    <div className="flex-1">
-                                        <div className="font-bold text-gray-700">{pr.title}</div>
-                                        <div className="text-xs text-gray-500">{pr.repositoryName || pr.repository}</div>
-                                    </div>
-                                    <span className="text-xs text-purple-600 bg-purple-100 px-2 py-0.5 rounded-full">#{pr._id.substring(pr._id.length - 3)}</span>
-                                </div>
-                            ))
-                        )}
-                        {activePRs.length > 2 && (
-                            <div className="text-xs text-center text-gray-500 mt-2">+{activePRs.length - 2} more</div>
-                        )}
-                    </div>
-                </motion.div>
-
-                {/* Repos Widget */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 }}
-                    className="glass-card p-6 relative overflow-hidden group"
-                >
-                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                        <FolderGit2 size={64} className="text-blue-600" />
-                    </div>
-                    <div className="flex items-center gap-3 mb-2">
-                        <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
-                            <FolderGit2 size={20} />
-                        </div>
-                        <h3 className="font-bold text-gray-700">Repositories</h3>
-                    </div>
-                    <div className="mt-4">
-                        <div className="text-3xl font-bold text-gray-800">{repos.length} <span className="text-sm font-normal text-gray-500">projects</span></div>
-                        <div className="flex items-center gap-2 mt-3 text-sm text-gray-500">
-                            <Clock size={14} /> Updated just now
-                        </div>
-                    </div>
-                </motion.div>
+            {/* KPI Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <ActiveTasksWidget count={activeTaskCount} isLoading={isLoading} delay={0.1} />
+                <OpenPRsWidget count={activePRCount} isLoading={isLoading} delay={0.2} />
+                <SystemVelocityWidget done={velocityData.done} total={velocityData.total} isLoading={isLoading} delay={0.3} />
+                <CommitActivityWidget delay={0.4} />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Repos List */}
-                <div className="lg:col-span-2 glass-panel">
-                    <div className="p-6 border-b border-white/50 flex justify-between items-center">
-                        <h3 className="font-bold text-lg text-gray-800">Your Projects</h3>
-                        <div className="flex gap-2">
-                            <button className="p-2 hover:bg-white/50 rounded-lg text-gray-500"><Layout size={18} /></button>
-                        </div>
+                {/* Recent Activity / Pinned Repos */}
+                <div className="lg:col-span-2 space-y-6">
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                            <Star size={20} className="text-yellow-400 fill-yellow-400" />
+                            Recent Projects
+                        </h2>
+                        <button onClick={() => router.push('/repositories')} className="text-sm font-bold text-indigo-600 hover:text-indigo-700">
+                            View All
+                        </button>
                     </div>
-                    <div className="divide-y divide-white/50">
-                        {repos.map((repo: any) => (
-                            <div
-                                key={repo.name}
-                                onClick={() => router.push(`/repo/${repo.name}`)}
-                                className="p-4 hover:bg-white/40 transition-colors flex items-center justify-between cursor-pointer group"
-                            >
-                                <div className="flex items-center gap-4">
-                                    <div className="p-3 bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl text-white shadow-lg group-hover:scale-105 transition-transform">
-                                        <GitBranch size={20} />
-                                    </div>
-                                    <div>
-                                        <h4 className="font-bold text-gray-700 group-hover:text-teal-700 transition-colors">{repo.name}</h4>
-                                        <p className="text-xs text-gray-500">Updated recently</p>
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-4 text-sm text-gray-500">
-                                    <span>main</span>
-                                    <span className="text-xs bg-gray-100 px-2 py-1 rounded">Private</span>
-                                </div>
+
+                    <div className="space-y-4">
+                        {isLoading ? (
+                            <div className="h-40 bg-white rounded-[24px] animate-pulse"></div>
+                        ) : repos.length === 0 ? (
+                            <div className="text-center py-10 text-gray-400 dashboard-card">
+                                No recent projects found.
                             </div>
-                        ))}
+                        ) : (
+                            repos.map((repo, i) => (
+                                <motion.div
+                                    key={repo._id}
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.2 + (i * 0.1) }}
+                                    onClick={() => router.push(`/repo/${repo.name}`)}
+                                    className="dashboard-card p-6 cursor-pointer group flex flex-col md:flex-row gap-6 items-center md:items-start"
+                                >
+                                    <div className="w-full md:w-48 h-24 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl flex items-center justify-center shrink-0">
+                                        <GitBranch size={32} className="text-indigo-400" />
+                                    </div>
+
+                                    <div className="flex-1 w-full">
+                                        <div className="flex justify-between items-start mb-2">
+                                            <h3 className="text-lg font-bold text-gray-800 group-hover:text-indigo-600 transition-colors">{repo.name}</h3>
+                                            <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors">
+                                                <ChevronRight size={18} />
+                                            </div>
+                                        </div>
+                                        <p className="text-sm text-gray-500 mb-3 line-clamp-2">
+                                            {repo.description || 'No description provided.'}
+                                        </p>
+                                    </div>
+                                </motion.div>
+                            ))
+                        )}
                     </div>
                 </div>
 
-                {/* Quick Actions / Activity */}
+                {/* Right Column: Quick Actions */}
                 <div className="space-y-6">
-                    <div className="glass-panel p-6">
-                        <h3 className="font-bold text-lg text-gray-800 mb-4">Quick Actions</h3>
-                        <div className="space-y-3">
-                            <button className="w-full text-left p-3 hover:bg-white/60 rounded-xl flex items-center gap-3 transition-colors group">
-                                <span className="p-2 bg-purple-100 text-purple-600 rounded-lg group-hover:scale-110 transition-transform"><Plus size={16} /></span>
-                                <span className="font-medium text-gray-700">New Snippet</span>
-                            </button>
-                            <button className="w-full text-left p-3 hover:bg-white/60 rounded-xl flex items-center gap-3 transition-colors group">
-                                <span className="p-2 bg-blue-100 text-blue-600 rounded-lg group-hover:scale-110 transition-transform"><User size={16} /></span>
-                                <span className="font-medium text-gray-700">Invite Team</span>
-                            </button>
+                    <div className="dashboard-card p-6">
+                        <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                            <Activity size={18} className="text-indigo-500" />
+                            Recent Activity
+                        </h3>
+                        <div className="space-y-4">
+                            {/* Mock Activity */}
+                            <div className="flex gap-3 items-start">
+                                <div className="w-2 h-2 rounded-full bg-green-500 mt-2 shrink-0"></div>
+                                <div>
+                                    <p className="text-sm text-gray-700">You pushed to <span className="font-bold">master</span></p>
+                                    <p className="text-xs text-gray-400">2 hours ago</p>
+                                </div>
+                            </div>
+                            <div className="flex gap-3 items-start">
+                                <div className="w-2 h-2 rounded-full bg-purple-500 mt-2 shrink-0"></div>
+                                <div>
+                                    <p className="text-sm text-gray-700">Merged PR <span className="font-bold">#42</span></p>
+                                    <p className="text-xs text-gray-400">5 hours ago</p>
+                                </div>
+                            </div>
+                            <div className="flex gap-3 items-start">
+                                <div className="w-2 h-2 rounded-full bg-blue-500 mt-2 shrink-0"></div>
+                                <div>
+                                    <p className="text-sm text-gray-700">Created new task <span className="font-bold">Update UI</span></p>
+                                    <p className="text-xs text-gray-400">Yesterday</p>
+                                </div>
+                            </div>
                         </div>
+                    </div>
+
+                    <div className="dashboard-card p-4 space-y-3">
+                        <button onClick={() => router.push('/repositories')} className="w-full py-3 bg-white border border-gray-200 text-gray-700 hover:border-indigo-300 hover:text-indigo-600 rounded-xl font-bold transition-all flex items-center justify-center gap-2">
+                            <Plus size={18} />
+                            Create New Project
+                        </button>
+                        <button onClick={() => router.push('/board')} className="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold shadow-lg shadow-indigo-200 hover:shadow-indigo-300 transition-all flex items-center justify-center gap-2">
+                            <Plus size={18} />
+                            Create New Task
+                        </button>
                     </div>
                 </div>
             </div>
-
-            <NewRepoModal
-                isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                onRepoCreated={handleCreateRepo}
-            />
         </div>
     );
 }

@@ -4,10 +4,13 @@ import {
     Home,
     Folder,
     GitBranch,
-    Sparkles,
     Settings,
     LogOut,
-    Layout
+    Layout,
+    GitMerge,
+    MessageSquare,
+    Users,
+    Calendar
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -20,48 +23,56 @@ const Sidebar = () => {
     const navItems = [
         { icon: Home, label: 'Dashboard', href: '/dashboard' },
         { icon: Layout, label: 'Work Board', href: '/board' },
-        { icon: GitBranch, label: 'Repos', href: '/dashboard' },
-        { icon: Sparkles, label: 'AI Hub', href: '/ai' },
+        { icon: Folder, label: 'Repositories', href: '/repositories' },
+        { icon: GitMerge, label: 'Pull Requests', href: '/pull-requests' },
     ];
 
     return (
-        <aside className="fixed left-6 top-6 bottom-6 w-24 bg-white/40 backdrop-blur-xl border border-white/50 shadow-xl rounded-[30px] flex flex-col items-center py-8 z-50">
-            <div className="mb-10">
-                <div className="w-12 h-12 bg-gradient-to-tr from-teal-400 to-blue-500 rounded-2xl shadow-lg flex items-center justify-center text-white font-bold text-xl">
-                    WS
+        <aside className="fixed left-0 top-0 bottom-0 w-64 bg-[#4F46E5] text-white flex flex-col py-8 z-50 shadow-2xl rounded-r-[40px]">
+            <div className="mb-12 px-8 flex items-center gap-3">
+                <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center backdrop-blur-sm">
+                    <span className="font-bold text-white">W</span>
                 </div>
+                <h1 className="text-2xl font-bold tracking-tight">WorkStack</h1>
             </div>
 
-            <nav className="flex-1 flex flex-col gap-6 w-full px-4">
+            <nav className="flex-1 flex flex-col w-full px-4 gap-2">
+                <div className="px-4 mb-2 text-xs font-semibold text-indigo-200 uppercase tracking-wider">
+                    Menu
+                </div>
                 {navItems.map((item) => {
+                    // Simple active check
                     const isActive = pathname === item.href;
                     return (
-                        <Link key={item.label} href={item.href} className="flex flex-col items-center gap-1 group">
-                            <div className={`p-3 rounded-2xl transition-all duration-300 ${isActive ? 'bg-teal-600/90 text-white shadow-lg shadow-teal-500/30' : 'bg-white/30 text-gray-500 hover:bg-white/60 hover:text-teal-700 hover:shadow-md'}`}>
-                                <item.icon size={22} className={isActive ? 'stroke-[2.5px]' : 'stroke-2'} />
-                            </div>
-                            <span className={`text-[10px] font-medium transition-colors ${isActive ? 'text-teal-800' : 'text-gray-400 group-hover:text-teal-700'}`}>
-                                {item.label}
-                            </span>
+                        <Link
+                            key={item.label}
+                            href={item.href}
+                            className={`sidebar-link ${isActive ? 'active' : ''}`}
+                        >
+                            <item.icon size={20} className={isActive ? 'opacity-100' : 'opacity-70'} />
+                            <span className="text-sm font-medium">{item.label}</span>
                         </Link>
                     );
                 })}
             </nav>
 
-            <div className="mt-auto flex flex-col gap-4 w-full px-4">
-                <button className="p-3 rounded-2xl bg-white/30 text-gray-500 hover:bg-white/60 hover:text-purple-600 transition-all flex justify-center">
-                    <Settings size={22} />
-                </button>
+            <div className="mt-auto px-6">
+                <div className="bg-indigo-700/50 rounded-2xl p-4 mb-6 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 -mt-2 -mr-2 w-16 h-16 bg-white/10 rounded-full blur-xl"></div>
+                    <h3 className="font-semibold text-sm mb-1">Upgrade Pro</h3>
+                    <p className="text-xs text-indigo-200 mb-3">Get full access to all features</p>
+                    <button className="w-full py-2 bg-white text-indigo-600 text-xs font-bold rounded-lg shadow-sm hover:bg-gray-50 transition-colors">
+                        Upgrade Now
+                    </button>
+                </div>
+
                 <button
                     onClick={logout}
-                    className="p-3 rounded-2xl bg-white/30 text-gray-500 hover:bg-red-50 hover:text-red-500 transition-all flex justify-center"
+                    className="flex items-center gap-3 text-indigo-200 hover:text-white transition-colors text-sm font-medium px-2"
                 >
-                    <LogOut size={22} />
+                    <LogOut size={18} />
+                    <span>Logout</span>
                 </button>
-            </div>
-
-            <div className="mt-6 text-[9px] text-gray-400 font-medium tracking-wide opacity-60">
-                © 2026
             </div>
         </aside>
     );

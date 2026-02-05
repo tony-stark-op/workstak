@@ -15,11 +15,18 @@ export default function Shell({ children }: { children: React.ReactNode }) {
     }
 
     return (
-        <div className="flex min-h-screen">
-            <Sidebar />
-            <div className="flex-1 ml-32 mr-6 my-6 flex flex-col">
+        <div className="flex min-h-screen bg-[#F5F6FA]">
+            {/* Fixed Sidebar */}
+            <div className="fixed top-0 bottom-0 left-0 w-64 z-50">
+                <Sidebar />
+            </div>
+
+            {/* Main Content Area */}
+            <div className="flex-1 ml-64 p-8 transition-all duration-300">
+                {/* Navbar is now part of the flow */}
                 <Navbar />
-                <main className="mt-24">
+
+                <main className="w-full max-w-[1400px] mx-auto">
                     {children}
                 </main>
             </div>

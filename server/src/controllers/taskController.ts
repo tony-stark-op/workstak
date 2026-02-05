@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import Task from '../models/Task';
+import emailService from '../services/emailService';
 
 export const getTasks = async (req: Request, res: Response) => {
     try {
@@ -53,5 +54,31 @@ export const updateTask = async (req: Request, res: Response) => {
         res.json(task);
     } catch (error) {
         res.status(500).json({ error: 'Failed to update task' });
+    }
+};
+
+export const deleteTask = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const userId = (req as any).user?.id || 'Unknown User'; // Assuming Auth middleware attaches user
+
+        // Find task first to get details for email
+        const task = await Task.findById(id).populate('assignee');
+
+        if (!task) {
+            return res.status(404).json({ error: 'Task not found' });
+        }
+
+        // Send Email Notification
+        // Note: Using imported EmailService
+        await emailService.sendTaskDeletionNotification(task, userId);
+
+        // Delete Task use deleteOne()
+        await task.deleteOne();
+
+        res.json({ message: 'Task deleted successfully' });
+    } catch (error) {
+        console.error('Delete Task Error:', error);
+        res.status(500).json({ error: 'Failed to delete task' });
     }
 };

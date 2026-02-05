@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getRepos, getUsers } from '@/lib/api';
 
 interface NewTaskModalProps {
     isOpen: boolean;
@@ -15,12 +16,44 @@ const NewTaskModal = ({ isOpen, onClose, onSubmit }: NewTaskModalProps) => {
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [priority, setPriority] = useState('medium');
-    const [assignee, setAssignee] = useState(''); // Allow string for now or User ID
-    const [project, setProject] = useState('workstack'); // Default project
+    const [assignee, setAssignee] = useState(''); // Stores User ID
+    const [project, setProject] = useState(''); // Stores Repo Name
+
+    // Dynamic Data Choices
+    const [projects, setProjects] = useState<any[]>([]);
+    const [users, setUsers] = useState<any[]>([]);
+    const [isLoadingData, setIsLoadingData] = useState(false);
+
+    // Fetch data when modal opens
+    useEffect(() => {
+        if (isOpen) {
+            loadFormOptions();
+        }
+    }, [isOpen]);
+
+    const loadFormOptions = async () => {
+        setIsLoadingData(true);
+        try {
+            const [reposData, usersData] = await Promise.all([
+                getRepos(), // Using repos as projects for now
+                getUsers()
+            ]);
+            setProjects(reposData);
+            setUsers(usersData);
+
+            // Set defaults if available
+            if (reposData.length > 0 && !project) setProject(reposData[0].name);
+            if (usersData.length > 0 && !assignee) setAssignee(usersData[0]._id);
+        } catch (err) {
+            console.error('Failed to load form options:', err);
+        } finally {
+            setIsLoadingData(false);
+        }
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        await onSubmit({ title, description, priority, project, status: 'todo' });
+        await onSubmit({ title, description, priority, project, assignee, status: 'todo' });
         // Reset form
         setTitle('');
         setDescription('');
@@ -41,7 +74,7 @@ const NewTaskModal = ({ isOpen, onClose, onSubmit }: NewTaskModalProps) => {
                 initial={{ opacity: 0, scale: 0.95, y: 10 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                className="glass-panel w-full max-w-lg p-6 relative z-10"
+                className="bg-white rounded-[24px] shadow-2xl border border-gray-100 w-full max-w-lg p-8 relative z-10"
             >
                 <button
                     onClick={onClose}
@@ -65,7 +98,7 @@ const NewTaskModal = ({ isOpen, onClose, onSubmit }: NewTaskModalProps) => {
                             required
                             value={title}
                             onChange={(e) => setTitle(e.target.value)}
-                            className="glass-input w-full"
+                            className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all text-gray-800 placeholder:text-gray-400"
                             placeholder="e.g. Implement Auth Flow"
                         />
                     </div>
@@ -102,13 +135,34 @@ const NewTaskModal = ({ isOpen, onClose, onSubmit }: NewTaskModalProps) => {
                             <label className="block text-xs font-bold text-gray-600 uppercase tracking-wide mb-1.5 ml-1">
                                 Project
                             </label>
-                            <input
-                                type="text"
+                            {/* Dynamic Project Dropdown */}
+                            <select
                                 value={project}
                                 onChange={(e) => setProject(e.target.value)}
-                                className="glass-input w-full"
-                                placeholder="Project Name"
-                            />
+                                className="glass-input w-full appearance-none"
+                                disabled={isLoadingData}
+                            >
+                                {isLoadingData ? <option>Loading...</option> : projects.map(p => (
+                                    <option key={p._id} value={p.name}>{p.name}</option>
+                                ))}
+                                {!isLoadingData && projects.length === 0 && <option value="">No Repos</option>}
+                            </select>
+                        </div>
+
+                        <div className="col-span-2">
+                            <label className="block text-xs font-bold text-gray-600 uppercase tracking-wide mb-1.5 ml-1">
+                                Assignee
+                            </label>
+                            <select
+                                value={assignee}
+                                onChange={(e) => setAssignee(e.target.value)}
+                                className="glass-input w-full appearance-none"
+                                disabled={isLoadingData}
+                            >
+                                {isLoadingData ? <option>Loading...</option> : users.map(u => (
+                                    <option key={u._id} value={u._id}>{u.firstName} {u.lastName} ({u.username})</option>
+                                ))}
+                            </select>
                         </div>
                     </div>
 

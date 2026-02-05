@@ -8,8 +8,8 @@ export interface IPullRequest extends Document {
     repository: string;
     status: 'active' | 'merged' | 'abandoned';
     createdBy: mongoose.Types.ObjectId;
-    author: mongoose.Types.ObjectId; // Alias for createdBy
     reviewers: mongoose.Types.ObjectId[];
+    tasks: mongoose.Types.ObjectId[];
     comments: Array<{
         user: mongoose.Types.ObjectId;
         text: string;
@@ -32,6 +32,7 @@ const pullRequestSchema = new Schema({
     },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     reviewers: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+    tasks: [{ type: Schema.Types.ObjectId, ref: 'Task' }], // Linked Tasks
     comments: [{
         user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
         text: { type: String, required: true },

@@ -172,3 +172,15 @@ export const changePassword = async (req: Request, res: Response) => {
         res.status(500).json({ error: "Failed to update password" });
     }
 };
+
+// 4. GET ALL USERS (For Assignee Dropdown)
+export const getUsers = async (req: Request, res: Response) => {
+    try {
+        // Only return necessary fields
+        const users = await User.find({}, 'firstName lastName email username organization');
+        res.json(users);
+    } catch (error) {
+        console.error('Get Users Error:', error);
+        res.status(500).json({ error: 'Failed to fetch users' });
+    }
+};

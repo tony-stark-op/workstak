@@ -48,7 +48,7 @@ const NewRepoModal = ({ isOpen, onClose, onRepoCreated }: NewRepoModalProps) => 
                 initial={{ opacity: 0, scale: 0.95, y: 10 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                className="glass-panel w-full max-w-lg p-6 relative z-10"
+                className="bg-white rounded-[24px] shadow-2xl border border-gray-100 w-full max-w-lg p-8 relative z-10"
             >
                 <button
                     onClick={onClose}
@@ -72,7 +72,7 @@ const NewRepoModal = ({ isOpen, onClose, onRepoCreated }: NewRepoModalProps) => 
                             required
                             value={name}
                             onChange={(e) => setName(e.target.value.replace(/\s+/g, '-').toLowerCase())}
-                            className="glass-input w-full font-mono text-sm"
+                            className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all text-gray-800 font-mono text-sm"
                             placeholder="my-awesome-project"
                         />
                     </div>
