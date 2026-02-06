@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-    baseURL: 'http://localhost:4000/api', // TODO: Use env
+    baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api',
 });
 
 // Add a request interceptor
@@ -11,6 +11,7 @@ api.interceptors.request.use(
         if (token) {
             config.headers['Authorization'] = `Bearer ${token}`;
         }
+        console.log(`[API Req] ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`, config.data);
         return config;
     },
     (error) => {
@@ -20,8 +21,12 @@ api.interceptors.request.use(
 
 // Add a response interceptor
 api.interceptors.response.use(
-    (response) => response,
+    (response) => {
+        console.log(`[API Res] ${response.status} ${response.config.url}`);
+        return response;
+    },
     (error) => {
+        console.error(`[API Err] ${error.response?.status} ${error.config?.url}`, error.response?.data);
         if (error.response && error.response.status === 401) {
             // Token expired or invalid
             if (typeof window !== 'undefined') {
