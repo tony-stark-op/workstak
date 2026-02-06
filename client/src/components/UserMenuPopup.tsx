@@ -28,7 +28,7 @@ const UserMenuPopup = ({ isOpen, onClose, onUpdateProfile }: UserMenuPopupProps)
                 className="absolute right-0 top-14 w-64 bg-white rounded-2xl shadow-xl border border-gray-100 p-4 z-50 flex flex-col gap-2"
             >
                 <div className="px-2 py-2 mb-2 border-b border-white/30">
-                    <p className="text-sm font-bold text-gray-800">{user?.username}</p>
+                    <p className="text-sm font-bold text-gray-800">{user?.firstName} {user?.lastName}</p>
                     <p className="text-xs text-gray-500">{user?.email}</p>
                 </div>
 
