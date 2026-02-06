@@ -92,18 +92,23 @@ export const login = async (req: Request, res: Response) => {
         const { email, password } = req.body;
 
         if (!email || !password) {
+            console.log(`[AUTH FAIL] Missing credentials for ${email || 'unknown'}`);
             return res.status(400).json({ error: 'Email and password are required' });
         }
 
         const user = await User.findOne({ email });
         if (!user) {
+            console.log(`[AUTH FAIL] User not found: ${email}`);
             return res.status(400).json({ error: 'Invalid credentials' });
         }
 
         const isMatch = await bcrypt.compare(password, user.passwordHash);
         if (!isMatch) {
+            console.log(`[AUTH FAIL] Invalid password for: ${email}`);
             return res.status(400).json({ error: 'Invalid credentials' });
         }
+
+        console.log(`[AUTH SUCCESS] User logged in: ${email} (${user._id})`);
 
         // CHECK IF PASSWORD CHANGE IS REQUIRED
         if (user.mustChangePassword) {

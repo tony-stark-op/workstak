@@ -5,6 +5,7 @@ dotenv.config();
 
 import express from 'express';
 import cors from 'cors';
+import morgan from 'morgan';
 import connectDB from './config/db';
 import repoRoutes from './routes/repoRoutes';
 import gitRoutes from './routes/gitRoutes';
@@ -20,6 +21,7 @@ const app = express();
 const PORT = process.env.PORT || 4000;
 
 app.use(cors());
+app.use(morgan('combined'));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
