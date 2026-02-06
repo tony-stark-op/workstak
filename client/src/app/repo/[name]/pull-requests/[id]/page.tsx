@@ -56,7 +56,7 @@ export default function PullRequestDetailsPage() {
                 <div className="flex justify-between items-start">
                     <div>
                         <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3 tracking-tight">
-                            {pr.title} <span className="text-gray-400 font-normal">#{id.toString().substring(18)}</span>
+                            {pr.title} <span className="text-gray-400 font-normal">#{(id || '').toString().substring(18)}</span>
                         </h1>
                         <div className="flex items-center gap-3 mt-2">
                             <span className={`px-3 py-1 rounded-full text-sm font-bold flex items-center gap-2 ${pr.status === 'active' ? 'bg-green-100 text-green-700' :
