@@ -48,7 +48,7 @@ export const getBranches = async (req: Request, res: Response) => {
 export const updateFile = async (req: Request, res: Response) => {
     try {
         const { name } = req.params;
-        const { filePath, content, message } = req.body;
+        const { filePath, content, message, branch } = req.body;
         // @ts-ignore
         const user = req.user; // populated by auth middleware
 
@@ -60,7 +60,7 @@ export const updateFile = async (req: Request, res: Response) => {
         const fullUser = await import('../models/User').then(m => m.default.findById(user.id));
         if (!fullUser) return res.status(401).json({ error: 'User not found' });
 
-        await gitService.updateFile(name as string, filePath, content, message, fullUser);
+        await gitService.updateFile(name as string, filePath, content, message, fullUser, branch || 'master');
         res.json({ success: true });
     } catch (error) {
         console.error(error);
@@ -109,6 +109,17 @@ export const createBranch = async (req: Request, res: Response) => {
         if (error.message.includes('does not exist') || error.message.includes('already exists')) {
             return res.status(400).json({ error: error.message });
         }
+        res.status(500).json({ error: error.message });
+    }
+};
+
+export const deleteBranch = async (req: Request, res: Response) => {
+    try {
+        const { name, branch } = req.params;
+        await gitService.deleteBranch(name as string, branch as string);
+        res.json({ success: true, message: `Branch ${branch} deleted` });
+    } catch (error: any) {
+        console.error('Delete Branch Error:', error);
         res.status(500).json({ error: error.message });
     }
 };

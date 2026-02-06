@@ -83,14 +83,14 @@ const NewTaskModal = ({ isOpen, onClose, onSubmit }: NewTaskModalProps) => {
                     <X size={20} />
                 </button>
 
-                <h2 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-teal-600 to-blue-600 mb-1">
+                <h2 className="text-xl font-bold text-gray-800 mb-1">
                     New Task
                 </h2>
                 <p className="text-sm text-gray-500 mb-6 font-medium">Add a new item to the board.</p>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
-                        <label className="block text-xs font-bold text-gray-600 uppercase tracking-wide mb-1.5 ml-1">
+                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 ml-1">
                             Title
                         </label>
                         <input
@@ -98,32 +98,32 @@ const NewTaskModal = ({ isOpen, onClose, onSubmit }: NewTaskModalProps) => {
                             required
                             value={title}
                             onChange={(e) => setTitle(e.target.value)}
-                            className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all text-gray-800 placeholder:text-gray-400"
+                            className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all text-gray-800 placeholder:text-gray-400 font-medium"
                             placeholder="e.g. Implement Auth Flow"
                         />
                     </div>
 
                     <div>
-                        <label className="block text-xs font-bold text-gray-600 uppercase tracking-wide mb-1.5 ml-1">
+                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 ml-1">
                             Description
                         </label>
                         <textarea
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
-                            className="glass-input w-full h-24 resize-none"
+                            className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all text-gray-800 placeholder:text-gray-400 font-medium h-24 resize-none"
                             placeholder="Details about the task..."
                         />
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-xs font-bold text-gray-600 uppercase tracking-wide mb-1.5 ml-1">
+                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 ml-1">
                                 Priority
                             </label>
                             <select
                                 value={priority}
                                 onChange={(e) => setPriority(e.target.value)}
-                                className="glass-input w-full appearance-none"
+                                className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all text-gray-800 appearance-none font-medium"
                             >
                                 <option value="low">Low</option>
                                 <option value="medium">Medium</option>
@@ -132,36 +132,37 @@ const NewTaskModal = ({ isOpen, onClose, onSubmit }: NewTaskModalProps) => {
                         </div>
 
                         <div>
-                            <label className="block text-xs font-bold text-gray-600 uppercase tracking-wide mb-1.5 ml-1">
+                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 ml-1">
                                 Project
                             </label>
                             {/* Dynamic Project Dropdown */}
                             <select
                                 value={project}
                                 onChange={(e) => setProject(e.target.value)}
-                                className="glass-input w-full appearance-none"
+                                className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all text-gray-800 appearance-none font-medium"
                                 disabled={isLoadingData}
                             >
                                 {isLoadingData ? <option>Loading...</option> : projects.map(p => (
                                     <option key={p._id} value={p.name}>{p.name}</option>
                                 ))}
-                                {!isLoadingData && projects.length === 0 && <option value="">No Repos</option>}
+                                {!isLoadingData && projects.length === 0 && <option value="">No Projects Available</option>}
                             </select>
                         </div>
 
                         <div className="col-span-2">
-                            <label className="block text-xs font-bold text-gray-600 uppercase tracking-wide mb-1.5 ml-1">
+                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 ml-1">
                                 Assignee
                             </label>
                             <select
                                 value={assignee}
                                 onChange={(e) => setAssignee(e.target.value)}
-                                className="glass-input w-full appearance-none"
+                                className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all text-gray-800 appearance-none font-medium"
                                 disabled={isLoadingData}
                             >
                                 {isLoadingData ? <option>Loading...</option> : users.map(u => (
                                     <option key={u._id} value={u._id}>{u.firstName} {u.lastName} ({u.username})</option>
                                 ))}
+                                {!isLoadingData && users.length === 0 && <option value="">No Users Found (Are you Admin?)</option>}
                             </select>
                         </div>
                     </div>
@@ -170,13 +171,13 @@ const NewTaskModal = ({ isOpen, onClose, onSubmit }: NewTaskModalProps) => {
                         <button
                             type="button"
                             onClick={onClose}
-                            className="px-5 py-2 text-sm font-medium text-gray-600 hover:bg-white/50 rounded-xl transition-all"
+                            className="px-5 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-100 rounded-xl transition-all"
                         >
                             Cancel
                         </button>
                         <button
                             type="submit"
-                            className="px-6 py-2 bg-gradient-to-r from-teal-500 to-blue-600 text-white text-sm font-bold rounded-xl shadow-lg shadow-teal-500/30 hover:shadow-teal-500/40 hover:scale-[1.02] transition-all flex items-center gap-2"
+                            className="px-6 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl shadow-lg shadow-indigo-200 hover:bg-indigo-700 hover:shadow-indigo-300 hover:scale-[1.02] transition-all flex items-center gap-2"
                         >
                             <Check size={16} /> Create Task
                         </button>

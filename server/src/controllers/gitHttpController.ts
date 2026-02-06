@@ -15,14 +15,31 @@ export const handleGitRequest = async (req: Request, res: Response) => {
     if (authHeader) {
         const [scheme, credentials] = authHeader.split(' ');
         if (scheme === 'Basic' && credentials) {
-            const [email, password] = Buffer.from(credentials, 'base64').toString().split(':');
-            try {
-                const dbUser = await User.findOne({ email });
-                if (dbUser && await bcrypt.compare(password, dbUser.passwordHash)) {
-                    user = dbUser;
+            const decoded = Buffer.from(credentials, 'base64').toString();
+            // Fix split to handle passwords with colons
+            const firstColon = decoded.indexOf(':');
+            if (firstColon !== -1) {
+                const email = decoded.substring(0, firstColon);
+                const password = decoded.substring(firstColon + 1);
+
+                console.log(`[Git Auth] Attempt for email: '${email}'`);
+
+                try {
+                    const dbUser = await User.findOne({ email });
+                    if (dbUser) {
+                        const isMatch = await bcrypt.compare(password, dbUser.passwordHash);
+                        if (isMatch) {
+                            user = dbUser;
+                            console.log(`[Git Auth] Success: ${email}`);
+                        } else {
+                            console.log(`[Git Auth] Password mismatch for ${email}`);
+                        }
+                    } else {
+                        console.log(`[Git Auth] User not found: ${email}`);
+                    }
+                } catch (error) {
+                    console.error('Auth error:', error);
                 }
-            } catch (error) {
-                console.error('Auth error:', error);
             }
         }
     }
@@ -41,7 +58,12 @@ export const handleGitRequest = async (req: Request, res: Response) => {
         return res.status(401).send('Authentication required');
     }
 
-    const pathInfo = req.path; // query string is stripped automatically
+    let pathInfo = req.path; // query string is stripped automatically
+
+    // Hack: Strip .git from repo name if present, as our folders don't have it
+    // e.g. /MyRepo.git/info/refs -> /MyRepo/info/refs
+    // Only applies if the folder itself doesn't end in .git (which we assume based on user issue)
+    pathInfo = pathInfo.replace(/^\/([^/]+)\.git/, '/$1');
 
     const env = {
         ...process.env,
@@ -57,6 +79,36 @@ export const handleGitRequest = async (req: Request, res: Response) => {
     // Pass standard headers
     if (req.headers['content-length']) {
         Object.assign(env, { 'CONTENT_LENGTH': req.headers['content-length'] });
+    }
+
+    // Verify Repo Existence and Lazy Init
+    const repoName = pathInfo.split('/')[1]; // /RepoName/info/refs
+    if (repoName) {
+        const repoPath = path.join(GIT_PROJECT_ROOT, repoName);
+        const repoExistsFs = require('fs').existsSync(repoPath);
+
+        if (!repoExistsFs) {
+            console.log(`[Git] Repo ${repoName} missing on disk. Checks DB...`);
+            // Check DB
+            const importRepo = (await import('../models/Repository')).default;
+            const dbRepo = await importRepo.findOne({ name: repoName });
+
+            if (dbRepo) {
+                console.log(`[Git] Repo found in DB. Initializing bare repo on disk at ${repoPath}...`);
+                await new Promise((resolve, reject) => {
+                    require('fs').mkdirSync(repoPath, { recursive: true });
+                    const init = spawn('git', ['init', '--bare'], { cwd: repoPath });
+                    init.on('close', (code) => {
+                        if (code === 0) resolve(true);
+                        else reject(new Error(`git init failed with code ${code}`));
+                    });
+                });
+            } else {
+                console.log(`[Git] Repo ${repoName} not found in DB.`);
+                // Let git backend handle 404/500 or simpler:
+                // return res.status(404).send('Repository not found');
+            }
+        }
     }
 
     console.log(`[Git] Spawning ${GIT_HTTP_BACKEND} for ${pathInfo} (User: ${user.email})`);

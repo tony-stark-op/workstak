@@ -21,9 +21,6 @@ export const createRepository = async (req: Request, res: Response): Promise<voi
             return;
         }
 
-        // Init bare repo on disk
-        await gitService.initRepo(name);
-
         // Create DB record
         const repo = new Repository({
             name,
@@ -33,6 +30,9 @@ export const createRepository = async (req: Request, res: Response): Promise<voi
         });
 
         await repo.save();
+
+        // Init repo (creates master branch, initial commit)
+        await gitService.initRepo(name);
 
         res.status(201).json(repo);
     } catch (error: any) {
@@ -47,5 +47,34 @@ export const listRepositories = async (req: Request, res: Response): Promise<voi
         res.json(repos);
     } catch (error) {
         res.status(500).json({ error: 'Failed to fetch repositories' });
+    }
+};
+
+import Branch from '../models/Branch';
+import Commit from '../models/Commit';
+import Blob from '../models/Blob';
+
+export const deleteRepository = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { name } = req.params;
+        const repo = await Repository.findOne({ name });
+
+        if (!repo) {
+            res.status(404).json({ error: 'Repository not found' });
+            return;
+        }
+
+        // Cleanup Git Data
+        await Branch.deleteMany({ repoId: repo._id });
+        await Commit.deleteMany({ repoId: repo._id });
+        await Blob.deleteMany({ repoId: repo._id });
+
+        // Delete Repo
+        await Repository.deleteOne({ _id: repo._id });
+
+        res.json({ success: true, message: 'Repository deleted successfully' });
+    } catch (error: any) {
+        console.error('Delete Repo Error:', error);
+        res.status(500).json({ error: error.message });
     }
 };

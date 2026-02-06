@@ -6,8 +6,11 @@ import api, { loginUser } from '@/lib/api';
 
 interface User {
     id: string;
-    username: string;
+    firstName: string;
+    lastName: string;
+    avatar?: string;
     email: string;
+    organization?: string;
 }
 
 interface AuthContextType {

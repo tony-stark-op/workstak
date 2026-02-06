@@ -44,7 +44,7 @@ export default function DashboardPage() {
             // Filter by status 'in-progress' and assignee matching current user
             const myActiveTasks = tasks.filter((t: any) =>
                 t.status === 'in-progress' &&
-                (t.assignee === user?.username || t.assignee?._id === user?.id)
+                t.assignee?._id === user?.id || t.assignee === user?.id
             );
             setActiveTaskCount(myActiveTasks.length);
 
@@ -136,7 +136,12 @@ export default function DashboardPage() {
 
                 {/* Right Column: Quick Actions */}
                 <div className="space-y-6">
-                    <div className="dashboard-card p-6">
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: 0.3 }}
+                        className="dashboard-card p-6"
+                    >
                         <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
                             <Activity size={18} className="text-indigo-500" />
                             Recent Activity
@@ -165,9 +170,13 @@ export default function DashboardPage() {
                                 </div>
                             </div>
                         </div>
-                    </div>
-
-                    <div className="dashboard-card p-4 space-y-3">
+                    </motion.div>
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.4 }}
+                        className="dashboard-card p-4 space-y-3"
+                    >
                         <button onClick={() => router.push('/repositories')} className="w-full py-3 bg-white border border-gray-200 text-gray-700 hover:border-indigo-300 hover:text-indigo-600 rounded-xl font-bold transition-all flex items-center justify-center gap-2">
                             <Plus size={18} />
                             Create New Project
@@ -176,7 +185,7 @@ export default function DashboardPage() {
                             <Plus size={18} />
                             Create New Task
                         </button>
-                    </div>
+                    </motion.div>
                 </div>
             </div>
         </div>

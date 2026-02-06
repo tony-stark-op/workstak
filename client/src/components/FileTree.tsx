@@ -26,7 +26,7 @@ const FileTree = ({ items, onSelect, selectedSha }: FileTreeProps) => {
 
                 return (
                     <button
-                        key={item.sha}
+                        key={item.name}
                         onClick={() => onSelect(item)}
                         className={`flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-all text-left group mx-2 ${isSelected
                             ? 'bg-indigo-50 text-indigo-700 font-bold'

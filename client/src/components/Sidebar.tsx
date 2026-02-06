@@ -57,22 +57,9 @@ const Sidebar = () => {
             </nav>
 
             <div className="mt-auto px-6">
-                <div className="bg-indigo-700/50 rounded-2xl p-4 mb-6 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 -mt-2 -mr-2 w-16 h-16 bg-white/10 rounded-full blur-xl"></div>
-                    <h3 className="font-semibold text-sm mb-1">Upgrade Pro</h3>
-                    <p className="text-xs text-indigo-200 mb-3">Get full access to all features</p>
-                    <button className="w-full py-2 bg-white text-indigo-600 text-xs font-bold rounded-lg shadow-sm hover:bg-gray-50 transition-colors">
-                        Upgrade Now
-                    </button>
+                <div className="mt-auto px-6">
+                    {/* Upgrade and Logout removed as per requirement */}
                 </div>
-
-                <button
-                    onClick={logout}
-                    className="flex items-center gap-3 text-indigo-200 hover:text-white transition-colors text-sm font-medium px-2"
-                >
-                    <LogOut size={18} />
-                    <span>Logout</span>
-                </button>
             </div>
         </aside>
     );

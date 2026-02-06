@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
-import { getTree, getCommits, getBlob, getBranches, updateFile, createBranch } from '@/lib/api';
+import { useParams, useRouter } from 'next/navigation';
+import { getTree, getCommits, getBlob, getBranches, updateFile, createBranch, deleteBranch, deleteRepo } from '@/lib/api';
 import {
     GitCommit,
     Copy,
@@ -17,7 +17,9 @@ import {
     X,
     Folder,
     GitPullRequest,
-    Plus
+    Plus,
+    Trash2,
+    Settings
 } from 'lucide-react';
 import Link from 'next/link';
 import FileTree from '@/components/FileTree';
@@ -25,11 +27,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 export default function RepoPage() {
     const { name } = useParams();
+    const router = useRouter();
 
     // State
     const [activeTab, setActiveTab] = useState('code');
     const [branches, setBranches] = useState<string[]>(['master']);
     const [currentBranch, setCurrentBranch] = useState('master');
+    const [currentPath, setCurrentPath] = useState(''); // Tracking path for navigation
 
     // File Browser State
     const [items, setItems] = useState<any[]>([]);
@@ -50,16 +54,12 @@ export default function RepoPage() {
 
     useEffect(() => {
         if (activeTab === 'code') {
-            loadTree(currentBranch);
+            loadTree(currentPath);
         } else {
-            // loadCommits();
-            // Actually call both or toggle? 
-            // In the clean design, we might show history differently.
-            // keeping tab logic for now but updating style
             if (activeTab === 'commits') loadCommits();
-            if (activeTab === 'code') loadTree(currentBranch);
+            if (activeTab === 'code') loadTree(currentPath);
         }
-    }, [name, activeTab, currentBranch]);
+    }, [name, activeTab, currentBranch, currentPath]);
 
     const loadBranches = async () => {
         try {
@@ -70,18 +70,25 @@ export default function RepoPage() {
         }
     };
 
-    const loadTree = async (sha = currentBranch) => {
+    const loadTree = async (pathStr = currentPath) => {
         try {
-            const data = await getTree(name as string, sha);
+            // Use path-based tree fetching
+            // Backend getTree takes `treeSha`. We can pass `branch:path`
+            // If pathStr is empty, use currentBranch
+            // If pathStr is 'src/', use 'master:src/'
+
+            // Clean path: remove trailing slash for git command if needed, but 'master:src' is better than 'master:src/'
+            const cleanPath = pathStr.endsWith('/') ? pathStr.slice(0, -1) : pathStr;
+            const ref = cleanPath ? `${currentBranch}:${cleanPath}` : currentBranch;
+
+            const data = await getTree(name as string, ref);
+
             // Sort: folders first
             data.sort((a: any, b: any) => (b.type === 'tree' ? 1 : 0) - (a.type === 'tree' ? 1 : 0));
             setItems(data);
-            if (sha === currentBranch) {
-                // Only reset if reloading root
-                // For simplicity, reset on branch switch
-            }
         } catch (err) {
             console.error(err);
+            setItems([]); // Empty on error (e.g. empty folder or invalid path)
         }
     };
 
@@ -96,8 +103,13 @@ export default function RepoPage() {
 
     const handleItemClick = async (item: any) => {
         if (item.type === 'tree') {
-            loadTree(item.sha);
+            // Folder clicked: navigate into it
+            const newPath = currentPath + item.name + '/';
+            setCurrentPath(newPath);
+            setSelectedFile(null);
+            setFileContent(null);
         } else {
+            // File clicked
             setSelectedFile(item);
             setIsEditing(false); // Reset edit mode
             const content = await getBlob(name as string, item.sha);
@@ -106,24 +118,81 @@ export default function RepoPage() {
         }
     };
 
+    const navigateToPath = (pathStr: string) => {
+        setCurrentPath(pathStr);
+        setSelectedFile(null);
+        setFileContent(null);
+        setIsEditing(false);
+    };
+
+    const handleCreate = (type: 'file' | 'folder') => {
+        const nameInput = prompt(`Enter ${type} name:`);
+        if (!nameInput) return;
+
+        if (type === 'file') {
+            // Mock selected file to open editor
+            // We need full path for saving
+            const fullPath = currentPath + nameInput;
+            setSelectedFile({ name: nameInput, pendingPath: fullPath }); // Store pending path
+            setEditContent('');
+            setFileContent(''); // Empty for new file
+            setIsEditing(true);
+        } else {
+            // Create folder (via .gitkeep)
+            createFolder(nameInput);
+        }
+    };
+
+    const createFolder = async (folderName: string) => {
+        try {
+            const fullPath = currentPath + folderName + '/.gitkeep';
+            await updateFile(name as string, {
+                filePath: fullPath,
+                content: '',
+                message: `Create folder ${folderName}`,
+                branch: currentBranch
+            });
+            // Refresh
+            loadTree(currentPath);
+        } catch (err) {
+            console.error(err);
+            alert('Failed to create folder');
+        }
+    }
+
     const handleSave = async () => {
         if (!commitMessage) return alert('Commit message required');
         setIsSaving(true);
         try {
+            // Determine full path
+            // If selectedFile has pendingPath (new file), use it
+            // Else use currentPath + selectedFile.name
+            const filePath = selectedFile.pendingPath || (currentPath + selectedFile.name);
+
             await updateFile(name as string, {
-                filePath: selectedFile.name,
+                filePath: filePath,
                 content: editContent,
-                message: commitMessage
+                message: commitMessage,
+                branch: currentBranch
             });
 
             setIsEditing(false);
             setCommitMessage('');
             setIsSaving(false);
 
-            // Reload
-            const content = await getBlob(name as string, selectedFile.sha); // sha is old? 
-            loadTree(currentBranch);
-            setFileContent(editContent); // Optimistic
+            // If we created a file, we should probably switch to the view mode of it
+            // or just reload the tree.
+            // If it was a new file, reload tree to show it
+            if (selectedFile.pendingPath) {
+                loadTree(currentPath);
+                // Update selectedFile to match what it would be (without pendingPath)
+                setSelectedFile({ ...selectedFile, pendingPath: undefined });
+                setFileContent(editContent);
+            } else {
+                // Determine new SHA? logic is complex without backend return.
+                // Optimistic update
+                setFileContent(editContent);
+            }
 
             alert('Committed successfully!');
         } catch (err) {
@@ -133,7 +202,7 @@ export default function RepoPage() {
         }
     };
 
-    const cloneUrl = `http://localhost:4000/git/${name}`;
+    const cloneUrl = `http://localhost:4000/git/${name}.git`;
 
     return (
         <div className="flex flex-col gap-6 h-[calc(100vh-8rem)]">
@@ -156,14 +225,31 @@ export default function RepoPage() {
                                     <div className="px-3 py-2 text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-50 mb-1">Select Branch</div>
                                     <div className="max-h-48 overflow-y-auto mb-2">
                                         {branches.map(b => (
-                                            <button
-                                                key={b}
-                                                onClick={() => setCurrentBranch(b)}
-                                                className="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 text-sm font-medium text-gray-600 hover:text-indigo-600 transition-colors flex items-center justify-between group/item"
-                                            >
-                                                {b}
-                                                {b === currentBranch && <CheckMarker />}
-                                            </button>
+                                            <div key={b} className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-slate-50 group/item transition-colors">
+                                                <button
+                                                    onClick={() => setCurrentBranch(b)}
+                                                    className="flex-1 text-left text-sm font-medium text-gray-600 hover:text-indigo-600 flex items-center gap-2"
+                                                >
+                                                    {b}
+                                                    {b === currentBranch && <CheckMarker />}
+                                                </button>
+                                                {b !== 'master' && b !== currentBranch && (
+                                                    <button
+                                                        onClick={async (e) => {
+                                                            e.stopPropagation();
+                                                            if (confirm(`Delete branch ${b}?`)) {
+                                                                try {
+                                                                    await deleteBranch(name as string, b);
+                                                                    loadBranches();
+                                                                } catch (err) { alert('Failed to delete'); }
+                                                            }
+                                                        }}
+                                                        className="p-1 text-gray-400 hover:text-red-500 opacity-0 group-hover/item:opacity-100 transition-all"
+                                                    >
+                                                        <Trash2 size={12} />
+                                                    </button>
+                                                )}
+                                            </div>
                                         ))}
                                     </div>
                                     <div className="border-t border-gray-100 pt-2 px-2 pb-2">
@@ -221,9 +307,15 @@ export default function RepoPage() {
                         >
                             History
                         </button>
+                        <button
+                            onClick={() => setActiveTab('settings')}
+                            className={`px-4 py-1.5 text-sm font-bold rounded-lg transition-all ${activeTab === 'settings' ? 'bg-indigo-50 text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}
+                        >
+                            <Settings size={14} />
+                        </button>
                         <Link
                             href={`/repo/${name}/pull-requests`}
-                            className="px-4 py-1.5 text-sm font-bold rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-50 transition-all flex items-center gap-2"
+                            className="px-4 py-1.5 text-sm font-bold text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-all flex items-center gap-2"
                         >
                             <GitPullRequest size={14} /> Pull Requests
                         </Link>
@@ -241,14 +333,59 @@ export default function RepoPage() {
                 </div>
             </div>
 
+            {activeTab === 'settings' && (
+                <div className="flex-1 bg-white rounded-[24px] shadow-sm border border-gray-100 p-8">
+                    <h2 className="text-lg font-bold text-gray-800 mb-4">Repository Settings</h2>
+
+                    <div className="border border-red-100 bg-red-50 rounded-xl p-6">
+                        <h3 className="text-red-800 font-bold mb-2">Danger Zone</h3>
+                        <p className="text-sm text-red-600 mb-4">Once you delete a repository, there is no going back. Please be certain.</p>
+                        <button
+                            onClick={async () => {
+                                if (confirm('Are you absolutely sure you want to delete this repository?')) {
+                                    try {
+                                        await deleteRepo(name as string);
+                                        // Redirect to repositories
+                                        window.location.href = '/repositories';
+                                    } catch (err) {
+                                        alert('Failed to delete repo');
+                                    }
+                                }
+                            }}
+                            className="px-4 py-2 bg-white border border-red-200 text-red-600 font-bold rounded-lg hover:bg-red-600 hover:text-white transition-colors shadow-sm"
+                        >
+                            Delete Repository
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {activeTab === 'code' ? (
                 <div className="flex gap-6 flex-1 min-h-0">
                     {/* Sidebar File Tree */}
                     <div className="w-72 bg-white rounded-[24px] shadow-sm border border-gray-100 flex flex-col overflow-hidden shrink-0">
-                        <div className="p-4 border-b border-gray-50 bg-gray-50/50">
-                            <div className="relative">
+                        <div className="p-4 border-b border-gray-50 bg-gray-50/50 flex justify-between items-center gap-2">
+                            <div className="relative flex-1">
                                 <Search size={14} className="absolute left-3 top-2.5 text-gray-400" />
                                 <input type="text" placeholder="Search..." className="w-full bg-white border border-gray-200 rounded-xl pl-9 p-2 text-sm outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-300 transition-all placeholder:text-gray-400" />
+                            </div>
+                            <div className="flex gap-1">
+                                <button
+                                    onClick={() => handleCreate('file')}
+                                    title="New File"
+                                    className="p-2 bg-white border border-gray-200 rounded-lg text-gray-500 hover:text-indigo-600 hover:border-indigo-200 transition-colors"
+                                >
+                                    <FileText size={14} />
+                                    <span className="sr-only">New File</span>
+                                </button>
+                                <button
+                                    onClick={() => handleCreate('folder')}
+                                    title="New Folder"
+                                    className="p-2 bg-white border border-gray-200 rounded-lg text-gray-500 hover:text-indigo-600 hover:border-indigo-200 transition-colors"
+                                >
+                                    <Folder size={14} />
+                                    <span className="sr-only">New Folder</span>
+                                </button>
                             </div>
                         </div>
                         <div className="flex-1 overflow-y-auto p-2">
@@ -258,7 +395,39 @@ export default function RepoPage() {
 
                     {/* Main Editor Area */}
                     <div className="flex-1 bg-white rounded-[24px] shadow-sm border border-gray-100 flex flex-col overflow-hidden relative">
-                        {fileContent ? (
+                        {/* Breadcrumbs */}
+                        {!isEditing && (
+                            <div className="px-6 py-3 border-b border-gray-50 bg-white flex items-center gap-2 text-sm overflow-x-auto whitespace-nowrap scrollbar-hide">
+                                <button
+                                    onClick={() => navigateToPath('')}
+                                    className={`font-bold hover:text-indigo-600 transition-colors ${currentPath === '' ? 'text-gray-800' : 'text-gray-500'}`}
+                                >
+                                    {name}
+                                </button>
+                                {currentPath.split('/').filter(Boolean).map((part, index, arr) => {
+                                    const pathTillNow = arr.slice(0, index + 1).join('/') + '/';
+                                    return (
+                                        <div key={pathTillNow} className="flex items-center gap-2">
+                                            <span className="text-gray-300">/</span>
+                                            <button
+                                                onClick={() => navigateToPath(pathTillNow)}
+                                                className={`font-medium hover:text-indigo-600 transition-colors ${index === arr.length - 1 && !selectedFile ? 'text-gray-800 font-bold' : 'text-gray-500'}`}
+                                            >
+                                                {part}
+                                            </button>
+                                        </div>
+                                    );
+                                })}
+                                {selectedFile && (
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-gray-300">/</span>
+                                        <span className="text-gray-800 font-bold">{selectedFile.name}</span>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {fileContent || isEditing ? (
                             <div className="flex flex-col h-full">
                                 <div className="px-6 py-4 border-b border-gray-50 flex justify-between items-center bg-gray-50/30">
                                     <div className="flex items-center gap-3">
@@ -266,8 +435,8 @@ export default function RepoPage() {
                                             <FileText size={16} />
                                         </div>
                                         <div>
-                                            <div className="text-sm font-bold text-gray-800">{selectedFile?.name}</div>
-                                            <div className="text-[10px] text-gray-400">{selectedFile?.size} bytes</div>
+                                            <div className="text-sm font-bold text-gray-800">{selectedFile?.name || (isEditing ? 'New File' : 'Selected File')}</div>
+                                            {!isEditing && <div className="text-[10px] text-gray-400">{selectedFile?.size} bytes</div>}
                                         </div>
                                     </div>
 

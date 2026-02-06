@@ -5,6 +5,7 @@ export interface IUser extends Document {
     lastName: string;
     organization: string;
     email: string;
+    avatar?: string;
     passwordHash: string;
     mustChangePassword: boolean; // New Field
     createdAt: Date;
@@ -17,6 +18,7 @@ const UserSchema: Schema = new Schema({
     organization: { type: String, required: true, trim: true },
     email: { type: String, required: true, unique: true, trim: true, lowercase: true },
     passwordHash: { type: String, required: true },
+    avatar: { type: String }, // Base64 or URL
     mustChangePassword: { type: Boolean, default: true }, // Defaults to true for new users
 }, {
     timestamps: true,
