@@ -5,7 +5,11 @@ import bcrypt from 'bcryptjs';
 import User from '../models/User';
 
 const GIT_PROJECT_ROOT = path.resolve(process.env.GIT_REPOS_PATH || './vcs-data');
-const GIT_HTTP_BACKEND = '/opt/homebrew/opt/git/libexec/git-core/git-http-backend';
+// Detect Git HTTP Backend Path
+const GIT_HTTP_BACKEND = process.env.GIT_HTTP_BACKEND ||
+    (process.platform === 'darwin'
+        ? '/opt/homebrew/opt/git/libexec/git-core/git-http-backend'
+        : '/usr/lib/git-core/git-http-backend');
 
 export const handleGitRequest = async (req: Request, res: Response) => {
     // Basic Auth Check
@@ -114,6 +118,11 @@ export const handleGitRequest = async (req: Request, res: Response) => {
     console.log(`[Git] Spawning ${GIT_HTTP_BACKEND} for ${pathInfo} (User: ${user.email})`);
 
     const git = spawn(GIT_HTTP_BACKEND, [], { env: env as any });
+
+    git.on('error', (err) => {
+        console.error(`[Git Spawn Error] Failed to start ${GIT_HTTP_BACKEND}:`, err);
+        if (!headersSent) res.status(500).send('Internal Git Error');
+    });
 
     req.pipe(git.stdin);
 

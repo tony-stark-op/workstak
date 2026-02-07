@@ -24,6 +24,7 @@ RUN mkdir -p /app/vcs-data
 ENV NODE_ENV=production
 ENV PORT=4000
 ENV GIT_REPOS_PATH=/app/vcs-data
+ENV GIT_HTTP_BACKEND=/usr/lib/git-core/git-http-backend
 
 # Expose Port
 EXPOSE 4000
