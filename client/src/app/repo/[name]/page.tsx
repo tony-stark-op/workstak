@@ -202,7 +202,9 @@ export default function RepoPage() {
         }
     };
 
-    const cloneUrl = `http://localhost:4000/git/${name}.git`;
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+    const gitBase = baseUrl.replace(/\/api\/?$/, ''); // Strip /api suffix
+    const cloneUrl = `${gitBase}/git/${name}.git`;
 
     return (
         <div className="flex flex-col gap-6 h-[calc(100vh-8rem)]">
