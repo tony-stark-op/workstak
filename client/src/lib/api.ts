@@ -55,7 +55,7 @@ export const compareBranches = (name: string, base: string, head: string) => api
 export const getBlob = (name: string, sha: string) => api.get(`/repos/${name}/blob/${sha}`).then(res => res.data);
 export const getBranches = (name: string) => api.get(`/repos/${name}/branches`).then(res => res.data);
 export const createBranch = (name: string, data: any) => api.post(`/repos/${name}/branches`, data).then(res => res.data);
-export const deleteBranch = (name: string, branch: string) => api.delete(`/repos/${name}/branches/${branch}`).then(res => res.data);
+export const deleteBranch = (name: string, branch: string) => api.delete(`/repos/${name}/branches/${encodeURIComponent(branch)}`).then(res => res.data);
 export const deleteRepo = (name: string) => api.delete(`/repos/${name}`).then(res => res.data);
 export const updateFile = (name: string, data: any) => api.post(`/repos/${name}/files`, data).then(res => res.data);
 

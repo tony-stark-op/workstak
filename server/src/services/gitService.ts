@@ -67,15 +67,52 @@ export class GitService {
 
     async initRepo(repoName: string): Promise<string> {
         const repoPath = path.join(GIT_ROOT, repoName);
-        // Create FS repo
+
+        // 1. Create Dir
+        require('fs').mkdirSync(repoPath, { recursive: true });
+
+        // 2. Git Init --bare
         await new Promise((resolve, reject) => {
-            require('fs').mkdirSync(repoPath, { recursive: true });
             const init = spawn('git', ['init', '--bare'], { cwd: repoPath });
             init.on('close', code => {
                 if (code === 0) resolve(true);
-                else reject(code);
+                else reject(new Error(`git init failed with code ${code}`));
             });
         });
+
+        // 3. Create Initial Commit (so master exists)
+        // This fails if we don't set user/email
+        const env = {
+            ...process.env,
+            GIT_AUTHOR_NAME: 'WorkStack System',
+            GIT_AUTHOR_EMAIL: 'system@workstack.com',
+            GIT_COMMITTER_NAME: 'WorkStack System',
+            GIT_COMMITTER_EMAIL: 'system@workstack.com'
+        };
+
+        try {
+            // Write empty tree
+            // const tree = await this.gitExec(repoName, ['mktree'], { input: '' }); // mktree might hang on stdin if not handled right
+            // Easier: hash-object -t tree /dev/null
+            // But we don't have /dev/null file. 
+            // We can use `git mktree` with empty input.
+
+            // Actually, simply:
+            // git commit-tree 4b825dc642cb6eb9a060e54bf8d69288fbee4904 -m "Initial commit"
+            // (The magic SHA for empty tree is 4b825dc642cb6eb9a060e54bf8d69288fbee4904)
+            const emptyTreeSha = '4b825dc642cb6eb9a060e54bf8d69288fbee4904';
+
+            const commitSha = await this.pipeToGitEnv(repoName, ['commit-tree', emptyTreeSha, '-m', 'Initial commit'], '', env);
+
+            // Update master
+            await this.gitExec(repoName, ['update-ref', 'refs/heads/master', commitSha]);
+            await this.gitExec(repoName, ['symbolic-ref', 'HEAD', 'refs/heads/master']);
+
+        } catch (e) {
+            console.error('Failed to create initial commit:', e);
+            // Non-fatal, return anyway
+        }
+
         return 'fs-vcs';
     }
 

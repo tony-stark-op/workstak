@@ -99,14 +99,9 @@ export const handleGitRequest = async (req: Request, res: Response) => {
 
             if (dbRepo) {
                 console.log(`[Git] Repo found in DB. Initializing bare repo on disk at ${repoPath}...`);
-                await new Promise((resolve, reject) => {
-                    require('fs').mkdirSync(repoPath, { recursive: true });
-                    const init = spawn('git', ['init', '--bare'], { cwd: repoPath });
-                    init.on('close', (code) => {
-                        if (code === 0) resolve(true);
-                        else reject(new Error(`git init failed with code ${code}`));
-                    });
-                });
+                const { GitService } = require('../services/gitService');
+                const gitService = new GitService();
+                await gitService.initRepo(repoName);
             } else {
                 console.log(`[Git] Repo ${repoName} not found in DB.`);
                 // Let git backend handle 404/500 or simpler:

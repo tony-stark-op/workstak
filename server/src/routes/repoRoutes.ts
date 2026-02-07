@@ -17,7 +17,7 @@ router.get('/:name/blob/:sha', getBlob);
 router.get('/:name/branches', getBranches);
 router.get('/:name/compare', compareBranches);
 router.post('/:name/branches', authMiddleware, createBranch);
-router.delete('/:name/branches/:branch', authMiddleware, deleteBranch);
+router.delete('/:name/branches/*', authMiddleware, deleteBranch);
 router.post('/:name/files', authMiddleware, updateFile);
 
 export default router;

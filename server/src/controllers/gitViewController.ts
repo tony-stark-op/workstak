@@ -115,7 +115,14 @@ export const createBranch = async (req: Request, res: Response) => {
 
 export const deleteBranch = async (req: Request, res: Response) => {
     try {
-        const { name, branch } = req.params;
+        const { name } = req.params;
+        // Support wildcard route (req.params[0]) or named param
+        const branch = req.params[0] || req.params.branch;
+
+        if (!branch) {
+            return res.status(400).json({ error: 'Branch name is required' });
+        }
+
         await gitService.deleteBranch(name as string, branch as string);
         res.json({ success: true, message: `Branch ${branch} deleted` });
     } catch (error: any) {
