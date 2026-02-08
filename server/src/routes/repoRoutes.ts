@@ -17,7 +17,11 @@ router.get('/:name/blob/:sha', getBlob);
 router.get('/:name/branches', getBranches);
 router.get('/:name/compare', compareBranches);
 router.post('/:name/branches', authMiddleware, createBranch);
-router.delete('/:name/branches/:branch(.*)', authMiddleware, deleteBranch);
+// Regex to match /:name/branches/:branch where branch can contain slashes
+// Matches /RepoName/branches/feature/foo/bar
+// Capture group 0: RepoName
+// Capture group 1: BranchName
+router.delete(/^\/([^/]+)\/branches\/(.+)$/, authMiddleware, deleteBranch);
 router.post('/:name/files', authMiddleware, updateFile);
 
 export default router;
